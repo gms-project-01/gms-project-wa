@@ -4,98 +4,127 @@ import { generateResponse } from "@/lib/openai";
 import { sendWhatsAppMessage } from "@/lib/evolution";
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  try {
+    const body = await request.json();
 
-  if (body.event !== "messages.upsert") {
-    return NextResponse.json({ ok: true });
-  }
-
-  const data = body.data;
-  if (data?.key?.fromMe === true) {
-    return NextResponse.json({ ok: true });
-  }
-
-  const remoteJid: string = data?.key?.remoteJid ?? "";
-  if (remoteJid.includes("@g.us")) {
-    return NextResponse.json({ ok: true });
-  }
-
-  const phone = remoteJid.replace("@s.whatsapp.net", "");
-  const text: string =
-    data?.message?.conversation ??
-    data?.message?.extendedTextMessage?.text ??
-    "";
-
-  if (!text) {
-    return NextResponse.json({ ok: true });
-  }
-
-  const config = await prisma.agentConfig.findFirst();
-  if (!config || !config.enabled) {
-    return NextResponse.json({ ok: true });
-  }
-
-  if (config.allowedPhones) {
-    const allowed = config.allowedPhones.split(",").map((p) => p.trim());
-    if (!allowed.includes(phone)) {
+    if (body.event !== "messages.upsert") {
       return NextResponse.json({ ok: true });
     }
-  }
 
-  let conversation = await prisma.conversation.findFirst({
-    where: { source: "whatsapp", phone },
-  });
-  if (!conversation) {
-    conversation = await prisma.conversation.create({
-      data: { source: "whatsapp", phone },
-    });
-  }
-
-  await prisma.message.create({
-    data: { conversationId: conversation.id, role: "user", content: text },
-  });
-
-  const history = await prisma.message.findMany({
-    where: { conversationId: conversation.id },
-    orderBy: { createdAt: "asc" },
-    take: config.historyLimit,
-  });
-
-  const messages = history.map((m) => ({
-    role: m.role as "user" | "assistant",
-    content: m.content,
-  }));
-
-  const { content, tokens } = await generateResponse(
-    messages,
-    config.systemPrompt,
-    config.temperature,
-    config.maxTokens,
-    {
-      aiProvider: config.aiProvider,
-      openaiApiKey: config.openaiApiKey,
-      openaiModel: config.openaiModel,
-      groqApiKey: config.groqApiKey,
-      groqModel: config.groqModel,
+    const data = body.data;
+    if (data?.key?.fromMe === true) {
+      return NextResponse.json({ ok: true });
     }
-  );
 
-  await prisma.message.create({
-    data: { conversationId: conversation.id, role: "assistant", content, tokens },
-  });
+    const remoteJid: string = data?.key?.remoteJid ?? "";
+    if (remoteJid.includes("@g.us")) {
+      return NextResponse.json({ ok: true });
+    }
 
-  await prisma.conversation.update({
-    where: { id: conversation.id },
-    data: { updatedAt: new Date() },
-  });
+    const phone = remoteJid.replace("@s.whatsapp.net", "");
+    const text: string =
+      data?.message?.conversation ??
+      data?.message?.extendedTextMessage?.text ??
+      "";
 
-  await sendWhatsAppMessage(
-    config.evolutionUrl,
-    config.evolutionApiKey,
-    config.instanceId,
-    phone,
-    content
-  );
+    if (!text) {
+      console.log("[webhook] ignored: empty text from", phone);
+      return NextResponse.json({ ok: true });
+    }
 
-  return NextResponse.json({ ok: true });
+    console.log("[webhook] message from", phone, ":", text.slice(0, 60));
+
+    const config = await prisma.agentConfig.findFirst();
+    if (!config || !config.enabled) {
+      console.log("[webhook] ignored: agent disabled or no config");
+      return NextResponse.json({ ok: true });
+    }
+
+    if (config.allowedPhones) {
+      const allowed = config.allowedPhones.split(",").map((p) => p.trim());
+      if (!allowed.includes(phone)) {
+        console.log("[webhook] ignored: phone not in allowedPhones:", phone);
+        return NextResponse.json({ ok: true });
+      }
+    }
+
+    let conversation = await prisma.conversation.findFirst({
+      where: { source: "whatsapp", phone },
+    });
+    if (!conversation) {
+      conversation = await prisma.conversation.create({
+        data: { source: "whatsapp", phone },
+      });
+    }
+
+    await prisma.message.create({
+      data: { conversationId: conversation.id, role: "user", content: text },
+    });
+
+    const history = await prisma.message.findMany({
+      where: { conversationId: conversation.id },
+      orderBy: { createdAt: "asc" },
+      take: config.historyLimit,
+    });
+
+    const messages = history.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
+
+    let aiContent: string;
+    let aiTokens: number;
+    try {
+      const result = await generateResponse(
+        messages,
+        config.systemPrompt,
+        config.temperature,
+        config.maxTokens,
+        {
+          aiProvider: config.aiProvider,
+          openaiApiKey: config.openaiApiKey,
+          openaiModel: config.openaiModel,
+          groqApiKey: config.groqApiKey,
+          groqModel: config.groqModel,
+        }
+      );
+      aiContent = result.content;
+      aiTokens = result.tokens;
+      console.log("[webhook] AI response generated, tokens:", aiTokens);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[webhook] AI error:", msg);
+      return NextResponse.json({ ok: false, error: "ai: " + msg }, { status: 500 });
+    }
+
+    await prisma.message.create({
+      data: { conversationId: conversation.id, role: "assistant", content: aiContent, tokens: aiTokens },
+    });
+
+    await prisma.conversation.update({
+      where: { id: conversation.id },
+      data: { updatedAt: new Date() },
+    });
+
+    try {
+      await sendWhatsAppMessage(
+        config.evolutionUrl,
+        config.evolutionApiKey,
+        config.instanceId,
+        phone,
+        aiContent
+      );
+      console.log("[webhook] message sent to", phone);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[webhook] Evolution API error:", msg);
+      return NextResponse.json({ ok: false, error: "evolution: " + msg }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[webhook] unexpected error:", msg);
+    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
+  }
 }
