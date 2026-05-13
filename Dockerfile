@@ -26,6 +26,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/node_modules/@libsql ./node_modules/@libsql
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/dotenv ./node_modules/dotenv
 COPY --from=builder /app/migrate.mjs ./migrate.mjs
 COPY --from=builder /app/start.sh ./start.sh
 
