@@ -72,7 +72,8 @@ export default function ConfigPage() {
     if (res.ok) {
       setFeedback({ type: "success", msg: "Configurações salvas com sucesso!" });
     } else {
-      setFeedback({ type: "error", msg: "Erro ao salvar configurações." });
+      const data = await res.json().catch(() => ({}));
+      setFeedback({ type: "error", msg: data.error ?? "Erro ao salvar configurações." });
     }
     setSaving(false);
   }

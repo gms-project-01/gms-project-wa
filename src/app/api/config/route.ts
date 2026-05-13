@@ -7,12 +7,17 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  let config = await prisma.agentConfig.findFirst();
-  if (!config) {
-    config = await prisma.agentConfig.create({ data: {} });
+  try {
+    let config = await prisma.agentConfig.findFirst();
+    if (!config) {
+      config = await prisma.agentConfig.create({ data: {} });
+    }
+    return NextResponse.json(config);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[GET /api/config]", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
-
-  return NextResponse.json(config);
 }
 
 export async function PUT(request: Request) {
@@ -20,34 +25,61 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const body = await request.json();
+  try {
+    const body = await request.json();
+    console.log("[PUT /api/config] body received:", JSON.stringify(body));
 
-  let config = await prisma.agentConfig.findFirst();
+    let config = await prisma.agentConfig.findFirst();
+    console.log("[PUT /api/config] existing config id:", config?.id ?? "none");
 
-  if (config) {
-    config = await prisma.agentConfig.update({
-      where: { id: config.id },
-      data: {
-        name: body.name,
-        systemPrompt: body.systemPrompt,
-        temperature: parseFloat(body.temperature),
-        maxTokens: parseInt(body.maxTokens),
-        historyLimit: parseInt(body.historyLimit),
-        enabled: body.enabled,
-        allowedPhones: body.allowedPhones,
-        evolutionUrl: body.evolutionUrl,
-        evolutionApiKey: body.evolutionApiKey,
-        instanceId: body.instanceId,
-        aiProvider: body.aiProvider,
-        openaiApiKey: body.openaiApiKey,
-        openaiModel: body.openaiModel,
-        groqApiKey: body.groqApiKey,
-        groqModel: body.groqModel,
-      },
-    });
-  } else {
-    config = await prisma.agentConfig.create({ data: body });
+    if (config) {
+      config = await prisma.agentConfig.update({
+        where: { id: config.id },
+        data: {
+          name: body.name,
+          systemPrompt: body.systemPrompt,
+          temperature: parseFloat(body.temperature),
+          maxTokens: parseInt(body.maxTokens),
+          historyLimit: parseInt(body.historyLimit),
+          enabled: Boolean(body.enabled),
+          allowedPhones: body.allowedPhones ?? "",
+          evolutionUrl: body.evolutionUrl ?? "",
+          evolutionApiKey: body.evolutionApiKey ?? "",
+          instanceId: body.instanceId ?? "",
+          aiProvider: body.aiProvider ?? "openai",
+          openaiApiKey: body.openaiApiKey ?? "",
+          openaiModel: body.openaiModel ?? "gpt-4.1-mini",
+          groqApiKey: body.groqApiKey ?? "",
+          groqModel: body.groqModel ?? "llama-3.3-70b-versatile",
+        },
+      });
+    } else {
+      config = await prisma.agentConfig.create({
+        data: {
+          name: body.name ?? "Assistente IA",
+          systemPrompt: body.systemPrompt ?? "Você é um assistente prestativo e amigável.",
+          temperature: parseFloat(body.temperature) || 0.7,
+          maxTokens: parseInt(body.maxTokens) || 1024,
+          historyLimit: parseInt(body.historyLimit) || 10,
+          enabled: Boolean(body.enabled ?? true),
+          allowedPhones: body.allowedPhones ?? "",
+          evolutionUrl: body.evolutionUrl ?? "",
+          evolutionApiKey: body.evolutionApiKey ?? "",
+          instanceId: body.instanceId ?? "",
+          aiProvider: body.aiProvider ?? "openai",
+          openaiApiKey: body.openaiApiKey ?? "",
+          openaiModel: body.openaiModel ?? "gpt-4.1-mini",
+          groqApiKey: body.groqApiKey ?? "",
+          groqModel: body.groqModel ?? "llama-3.3-70b-versatile",
+        },
+      });
+    }
+
+    console.log("[PUT /api/config] saved successfully:", config.id);
+    return NextResponse.json(config);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[PUT /api/config] ERROR:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
-
-  return NextResponse.json(config);
 }
