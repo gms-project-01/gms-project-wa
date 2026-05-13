@@ -107,14 +107,16 @@ export async function POST(request: Request) {
       data: { updatedAt: new Date() },
     });
 
-    // Classify and save item in background (non-blocking)
-    classifyMessage(text, {
-      aiProvider: config.aiProvider,
-      openaiApiKey: config.openaiApiKey,
-      openaiModel: config.openaiModel,
-      groqApiKey: config.groqApiKey,
-      groqModel: config.groqModel,
-    }).then(async (classification) => {
+    // Classify and save item (awaited so errors are visible in logs)
+    try {
+      const classification = await classifyMessage(text, {
+        aiProvider: config.aiProvider,
+        openaiApiKey: config.openaiApiKey,
+        openaiModel: config.openaiModel,
+        groqApiKey: config.groqApiKey,
+        groqModel: config.groqModel,
+      });
+      console.log("[webhook] classification:", JSON.stringify(classification));
       if (classification?.register) {
         await prisma.item.create({
           data: {
@@ -126,10 +128,12 @@ export async function POST(request: Request) {
           },
         });
         console.log("[webhook] item saved:", classification.category, "-", classification.title);
+      } else {
+        console.log("[webhook] message not registered (register=false or null)");
       }
-    }).catch((err) => {
-      console.error("[webhook] classifier save error:", err instanceof Error ? err.message : String(err));
-    });
+    } catch (err) {
+      console.error("[webhook] classifier/save error:", err instanceof Error ? err.message : String(err));
+    }
 
     try {
       await sendWhatsAppMessage(

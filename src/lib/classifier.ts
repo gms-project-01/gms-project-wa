@@ -75,7 +75,12 @@ export async function classifyMessage(
     });
 
     const raw = response.choices[0]?.message?.content ?? "";
-    const parsed = JSON.parse(raw) as Classification;
+    console.log("[classifier] raw response:", raw.slice(0, 200));
+
+    // Strip markdown code blocks if present
+    const clean = raw.replace(/```(?:json)?\s*/gi, "").replace(/```/g, "").trim();
+    const parsed = JSON.parse(clean) as Classification;
+    console.log("[classifier] parsed:", JSON.stringify(parsed));
     return parsed;
   } catch (err) {
     console.error("[classifier] error:", err instanceof Error ? err.message : String(err));
