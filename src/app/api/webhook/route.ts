@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateResponse } from "@/lib/openai";
 import { sendWhatsAppMessage } from "@/lib/evolution";
+import { classifyMessage } from "@/lib/classifier";
 
 export async function POST(request: Request) {
   try {
@@ -104,6 +105,30 @@ export async function POST(request: Request) {
     await prisma.conversation.update({
       where: { id: conversation.id },
       data: { updatedAt: new Date() },
+    });
+
+    // Classify and save item in background (non-blocking)
+    classifyMessage(text, {
+      aiProvider: config.aiProvider,
+      openaiApiKey: config.openaiApiKey,
+      openaiModel: config.openaiModel,
+      groqApiKey: config.groqApiKey,
+      groqModel: config.groqModel,
+    }).then(async (classification) => {
+      if (classification?.register) {
+        await prisma.item.create({
+          data: {
+            category: classification.category,
+            title: classification.title,
+            content: text,
+            status: "aberto",
+            phone,
+          },
+        });
+        console.log("[webhook] item saved:", classification.category, "-", classification.title);
+      }
+    }).catch((err) => {
+      console.error("[webhook] classifier save error:", err instanceof Error ? err.message : String(err));
     });
 
     try {

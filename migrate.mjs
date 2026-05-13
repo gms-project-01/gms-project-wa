@@ -47,6 +47,23 @@ await db.executeMultiple(`
   );
 `);
 
+const incrementalNew = [
+  `CREATE TABLE IF NOT EXISTS "Item" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "category" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'aberto',
+    "phone" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`,
+];
+
+for (const sql of incrementalNew) {
+  try { await db.execute(sql); } catch { /* já existe */ }
+}
+
 const incremental = [
   `ALTER TABLE "AgentConfig" ADD COLUMN "historyLimit" INTEGER NOT NULL DEFAULT 10`,
   `ALTER TABLE "AgentConfig" ADD COLUMN "enabled" INTEGER NOT NULL DEFAULT 1`,

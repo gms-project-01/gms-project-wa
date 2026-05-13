@@ -45,3 +45,14 @@ model Message {
   tokens         Int?
   createdAt      DateTime     @default(now())
 }
+
+model Item {
+  id        String   @id @default(cuid())
+  category  String
+  title     String
+  content   String
+  status    String   @default("aberto")
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

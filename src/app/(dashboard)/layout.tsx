@@ -5,8 +5,9 @@ import { usePathname, useRouter } from "next/navigation";
 
 const navLinks = [
   { href: "/", label: "Chat de Teste", icon: "💬" },
-  { href: "/config", label: "Configurações", icon: "⚙️" },
+  { href: "/items", label: "Itens Registrados", icon: "📋" },
   { href: "/conversations", label: "Conversas WA", icon: "📱" },
+  { href: "/config", label: "Configurações", icon: "⚙️" },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
