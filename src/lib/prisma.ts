@@ -2,7 +2,6 @@ import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
-import { createClient } from "@libsql/client";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
@@ -19,8 +18,7 @@ function resolveFileUrl(rawUrl: string): string {
 function createPrisma(): PrismaClient {
   if (process.env.NODE_ENV === "production") {
     const url = process.env.DATABASE_URL ?? "file:/app/data/prod.db";
-    const libsql = createClient({ url });
-    const adapter = new PrismaLibSql(libsql);
+    const adapter = new PrismaLibSql({ url });
     return new PrismaClient({ adapter });
   }
 
