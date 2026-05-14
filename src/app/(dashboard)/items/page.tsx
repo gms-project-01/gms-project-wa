@@ -57,6 +57,8 @@ export default function ItemsPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [selected, setSelected] = useState<Item | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
   const [diagMsg, setDiagMsg] = useState<string | null>(null);
   const [diagLoading, setDiagLoading] = useState(false);
   const [classifyText, setClassifyText] = useState("");
@@ -75,15 +77,16 @@ export default function ItemsPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  async function updateStatus(id: string, status: string) {
+  async function updateStatus(id: string, newStatus: string) {
+    // Optimistic update — moves card immediately, no reload needed
+    setItems((prev) => prev.map((i) => i.id === id ? { ...i, status: newStatus } : i));
+    if (selected?.id === id) setSelected((prev) => prev ? { ...prev, status: newStatus } : null);
     setUpdating(true);
     await fetch(`/api/items/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status: newStatus }),
     });
-    await load();
-    if (selected?.id === id) setSelected((prev) => prev ? { ...prev, status } : null);
     setUpdating(false);
   }
 
@@ -262,12 +265,25 @@ export default function ItemsPage() {
             {ALL_STATUSES.map((status) => (
               <div
                 key={status}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                onDragEnter={(e) => { e.preventDefault(); setDragOverStatus(status); }}
+                onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverStatus(null); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const id = e.dataTransfer.getData("itemId");
+                  const fromStatus = e.dataTransfer.getData("fromStatus");
+                  setDragOverStatus(null);
+                  setDraggingId(null);
+                  if (id && fromStatus !== status) updateStatus(id, status);
+                }}
                 style={{
                   flex: 1,
                   display: "flex",
                   flexDirection: "column",
                   borderRight: "1px solid var(--border)",
                   overflow: "hidden",
+                  background: dragOverStatus === status ? "var(--accent-dim)" : undefined,
+                  transition: "background 0.15s",
                 }}
               >
                 {/* Column header */}
@@ -306,14 +322,24 @@ export default function ItemsPage() {
                   {grouped[status]?.map((item) => (
                     <div
                       key={item.id}
+                      draggable
+                      onDragStart={(e) => {
+                        setDraggingId(item.id);
+                        e.dataTransfer.setData("itemId", item.id);
+                        e.dataTransfer.setData("fromStatus", item.status);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragEnd={() => { setDraggingId(null); setDragOverStatus(null); }}
                       onClick={() => setSelected(selected?.id === item.id ? null : item)}
                       className="card"
                       style={{
                         padding: "12px",
-                        cursor: "pointer",
+                        cursor: "grab",
                         borderColor: selected?.id === item.id ? "var(--accent-border)" : "var(--border)",
                         background: selected?.id === item.id ? "var(--accent-dim)" : "var(--surface)",
-                        transition: "all 0.1s",
+                        opacity: draggingId === item.id ? 0.4 : 1,
+                        transition: "opacity 0.15s, border-color 0.1s, background 0.1s",
+                        userSelect: "none",
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px", marginBottom: "6px" }}>
