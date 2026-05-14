@@ -2,7 +2,19 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateResponse } from "@/lib/openai";
 import { sendWhatsAppMessage } from "@/lib/evolution";
-import { classifyMessage } from "@/lib/classifier";
+import { classifyMessage, Classification } from "@/lib/classifier";
+
+const STATUS_PT: Record<string, string> = {
+  aberto: "Aberto",
+  em_andamento: "Em andamento",
+  resolvido: "Resolvido",
+};
+
+const CATEGORY_PT: Record<string, string> = {
+  requisicao: "Requisição", anotacao: "Anotação", problema: "Problema",
+  solucao: "Solução", feedback: "Feedback", duvida: "Dúvida",
+  tarefa: "Tarefa", outro: "Outro",
+};
 
 export async function POST(request: Request) {
   try {
@@ -62,48 +74,107 @@ export async function POST(request: Request) {
       data: { conversationId: conversation.id, role: "user", content: text },
     });
 
+    const providerOpts = {
+      aiProvider: config.aiProvider,
+      openaiApiKey: config.openaiApiKey,
+      openaiModel: config.openaiModel,
+      groqApiKey: config.groqApiKey,
+      groqModel: config.groqModel,
+    };
+
+    // STEP 1: Classify message BEFORE generating AI response
+    let classification: Classification | null = null;
+    try {
+      classification = await classifyMessage(text, providerOpts);
+      console.log("[webhook] classification:", JSON.stringify(classification));
+    } catch (err) {
+      console.error("[webhook] classifier error:", err instanceof Error ? err.message : String(err));
+    }
+
+    // STEP 2: Apply DB actions from classification (before AI runs, so items list is current)
+    let statusUpdateResult: { success: boolean; title?: string; newStatus?: string } = { success: false };
+
+    if (classification?.action === "register" && classification.category) {
+      await prisma.item.create({
+        data: {
+          category: classification.category,
+          title: classification.title ?? text.slice(0, 60),
+          content: text,
+          status: "aberto",
+          phone,
+        },
+      });
+      console.log("[webhook] item saved:", classification.category, "-", classification.title);
+
+    } else if (classification?.action === "update_status" && classification.itemRef) {
+      const ref = classification.itemRef.toLowerCase();
+      const allItems = await prisma.item.findMany({ orderBy: { createdAt: "desc" } });
+      const match = allItems.find(
+        (i) => i.title.toLowerCase().includes(ref) || ref.includes(i.title.toLowerCase())
+      );
+      if (match) {
+        const newStatus = classification.newStatus ?? "resolvido";
+        await prisma.item.update({ where: { id: match.id }, data: { status: newStatus } });
+        statusUpdateResult = { success: true, title: match.title, newStatus };
+        console.log("[webhook] item status updated:", match.title, "->", newStatus);
+      } else {
+        statusUpdateResult = { success: false, title: classification.itemRef };
+        console.log("[webhook] update_status: no matching item found for ref:", ref);
+      }
+    }
+
+    // STEP 3: Fetch history and items AFTER DB updates (AI sees fresh data)
     const history = await prisma.message.findMany({
       where: { conversationId: conversation.id },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: "desc" },
       take: config.historyLimit,
     });
+    history.reverse();
 
     const messages = history.map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
     }));
 
-    // Inject registered items as context so the AI can answer queries about them
     const items = await prisma.item.findMany({
       orderBy: { createdAt: "desc" },
       take: 100,
     });
 
-    const STATUS_PT: Record<string, string> = {
-      aberto: "Aberto",
-      em_andamento: "Em andamento",
-      resolvido: "Resolvido",
-    };
-    const CATEGORY_PT: Record<string, string> = {
-      requisicao: "Requisição", anotacao: "Anotação", problema: "Problema",
-      solucao: "Solução", feedback: "Feedback", duvida: "Dúvida",
-      tarefa: "Tarefa", outro: "Outro",
-    };
-
     const itemsBlock = items.length > 0
       ? items.map((i) =>
-          `• [${CATEGORY_PT[i.category] ?? i.category}] ${i.title} — ${STATUS_PT[i.status] ?? i.status}${i.phone ? ` (${i.phone})` : ""}`
+          `• ${i.title} [${CATEGORY_PT[i.category] ?? i.category}] — ${STATUS_PT[i.status] ?? i.status}`
         ).join("\n")
       : "Nenhum item registrado ainda.";
+
+    // STEP 4: Build classification-aware instruction so AI knows what happened and how to respond
+    let classificationHint: string;
+    if (classification?.action === "query") {
+      classificationHint = "O usuário está consultando informações. Responda DIRETAMENTE com base nos itens acima. Seja conciso e objetivo. NÃO faça perguntas de volta. NÃO peça confirmação.";
+    } else if (classification?.action === "register") {
+      const title = classification.title ?? "item";
+      const cat = CATEGORY_PT[classification.category ?? ""] ?? classification.category ?? "";
+      classificationHint = `O usuário registrou um novo item: "${title}"${cat ? ` (${cat})` : ""}. Confirme brevemente que foi anotado. Não faça perguntas desnecessárias.`;
+    } else if (classification?.action === "update_status") {
+      if (statusUpdateResult.success) {
+        const statusLabel = STATUS_PT[statusUpdateResult.newStatus ?? ""] ?? statusUpdateResult.newStatus;
+        classificationHint = `O status do item "${statusUpdateResult.title}" foi atualizado para "${statusLabel}" no sistema. Confirme esta atualização para o usuário de forma breve e direta.`;
+      } else {
+        classificationHint = `O usuário pediu para atualizar o status de "${statusUpdateResult.title}", mas este item não foi encontrado no sistema. Informe que não localizou o item e peça para confirmar o nome.`;
+      }
+    } else {
+      classificationHint = "Responda de forma breve e natural. Não faça perguntas desnecessárias.";
+    }
 
     const systemPromptWithItems = `${config.systemPrompt}
 
 ---
-ITENS REGISTRADOS NO SISTEMA (banco de dados atualizado):
+ITENS REGISTRADOS NO SISTEMA:
 ${itemsBlock}
 ---
-Quando o usuário perguntar sobre tarefas, problemas, requisições ou qualquer item registrado, use as informações acima para responder com precisão. Você pode filtrar por status (Aberto, Em andamento, Resolvido) ou categoria conforme a pergunta.`;
+INSTRUÇÃO PARA ESTA MENSAGEM: ${classificationHint}`;
 
+    // STEP 5: Generate AI response with full context
     let aiContent: string;
     let aiTokens: number;
     try {
@@ -112,13 +183,7 @@ Quando o usuário perguntar sobre tarefas, problemas, requisições ou qualquer 
         systemPromptWithItems,
         config.temperature,
         config.maxTokens,
-        {
-          aiProvider: config.aiProvider,
-          openaiApiKey: config.openaiApiKey,
-          openaiModel: config.openaiModel,
-          groqApiKey: config.groqApiKey,
-          groqModel: config.groqModel,
-        }
+        providerOpts
       );
       aiContent = result.content;
       aiTokens = result.tokens;
@@ -137,53 +202,6 @@ Quando o usuário perguntar sobre tarefas, problemas, requisições ou qualquer 
       where: { id: conversation.id },
       data: { updatedAt: new Date() },
     });
-
-    // Classify message and act accordingly
-    try {
-      const classification = await classifyMessage(text, {
-        aiProvider: config.aiProvider,
-        openaiApiKey: config.openaiApiKey,
-        openaiModel: config.openaiModel,
-        groqApiKey: config.groqApiKey,
-        groqModel: config.groqModel,
-      });
-      console.log("[webhook] classification:", JSON.stringify(classification));
-
-      if (classification?.action === "register" && classification.category) {
-        await prisma.item.create({
-          data: {
-            category: classification.category,
-            title: classification.title ?? text.slice(0, 60),
-            content: text,
-            status: "aberto",
-            phone,
-          },
-        });
-        console.log("[webhook] item saved:", classification.category, "-", classification.title);
-
-      } else if (classification?.action === "update_status" && classification.itemRef) {
-        const ref = classification.itemRef.toLowerCase();
-        const allItems = await prisma.item.findMany({ orderBy: { createdAt: "desc" } });
-        const match = allItems.find(
-          (i) => i.title.toLowerCase().includes(ref) || ref.includes(i.title.toLowerCase())
-        );
-        if (match) {
-          const newStatus = classification.newStatus ?? "resolvido";
-          await prisma.item.update({ where: { id: match.id }, data: { status: newStatus } });
-          console.log("[webhook] item status updated:", match.title, "->", newStatus);
-        } else {
-          console.log("[webhook] update_status: no matching item found for ref:", ref);
-        }
-
-      } else if (classification?.action === "query") {
-        console.log("[webhook] query detected, no item saved");
-
-      } else {
-        console.log("[webhook] none/trivial, no item saved");
-      }
-    } catch (err) {
-      console.error("[webhook] classifier/save error:", err instanceof Error ? err.message : String(err));
-    }
 
     try {
       await sendWhatsAppMessage(
