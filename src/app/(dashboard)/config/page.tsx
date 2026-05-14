@@ -44,9 +44,12 @@ export default function ConfigPage() {
   const router = useRouter();
   const [config, setConfig] = useState<Config>(defaultConfig);
   const [saving, setSaving] = useState(false);
+  const [savingPrompt, setSavingPrompt] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  const [promptFeedback, setPromptFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [webhookUrl, setWebhookUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [configPassword, setConfigPassword] = useState("");
 
   useEffect(() => {
     setWebhookUrl(window.location.origin + "/api/webhook");
@@ -58,6 +61,23 @@ export default function ConfigPage() {
       .then((data) => { if (data) setConfig(data); });
   }, [router]);
 
+  async function handleSavePrompt() {
+    setSavingPrompt(true);
+    setPromptFeedback(null);
+    const res = await fetch("/api/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ systemPrompt: config.systemPrompt }),
+    });
+    if (res.ok) {
+      setPromptFeedback({ type: "success", msg: "Prompt salvo!" });
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setPromptFeedback({ type: "error", msg: data.error ?? "Erro ao salvar." });
+    }
+    setSavingPrompt(false);
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -66,11 +86,12 @@ export default function ConfigPage() {
     const res = await fetch("/api/config", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(config),
+      body: JSON.stringify({ ...config, configPassword }),
     });
 
     if (res.ok) {
       setFeedback({ type: "success", msg: "Configurações salvas com sucesso!" });
+      setConfigPassword("");
     } else {
       const data = await res.json().catch(() => ({}));
       setFeedback({ type: "error", msg: data.error ?? "Erro ao salvar configurações." });
@@ -141,7 +162,25 @@ export default function ConfigPage() {
           </div>
 
           <div>
-            <label style={labelStyle}>Prompt do sistema</label>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Prompt do sistema</label>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                {promptFeedback && (
+                  <span style={{ fontSize: "12px", color: promptFeedback.type === "success" ? "var(--success)" : "var(--error)" }}>
+                    {promptFeedback.msg}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={handleSavePrompt}
+                  disabled={savingPrompt}
+                  style={{ fontSize: "12px", padding: "5px 12px" }}
+                >
+                  {savingPrompt ? "Salvando..." : "Salvar prompt"}
+                </button>
+              </div>
+            </div>
             <textarea
               className="field-input"
               rows={4}
@@ -381,23 +420,45 @@ export default function ConfigPage() {
           </div>
         </div>
 
-        {feedback && (
-          <div
-            style={{
-              padding: "12px 16px",
-              borderRadius: "10px",
-              background: feedback.type === "success" ? "var(--success-dim)" : "var(--error-dim)",
-              color: feedback.type === "success" ? "var(--success)" : "var(--error)",
-              fontSize: "14px",
-            }}
-          >
-            {feedback.msg}
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div>
+            <label style={labelStyle}>Senha para salvar configurações</label>
+            <input
+              className="field-input"
+              type="password"
+              placeholder="Digite a senha para confirmar"
+              value={configPassword}
+              onChange={(e) => setConfigPassword(e.target.value)}
+              style={{ maxWidth: "320px" }}
+            />
+            <p style={{ fontSize: "12px", color: "var(--text-3)", marginTop: "6px" }}>
+              Apenas o prompt do sistema pode ser salvo sem senha
+            </p>
           </div>
-        )}
 
-        <button className="btn-primary" type="submit" disabled={saving} style={{ alignSelf: "flex-start", padding: "12px 32px" }}>
-          {saving ? "Salvando..." : "Salvar configurações"}
-        </button>
+          {feedback && (
+            <div
+              style={{
+                padding: "12px 16px",
+                borderRadius: "10px",
+                background: feedback.type === "success" ? "var(--success-dim)" : "var(--error-dim)",
+                color: feedback.type === "success" ? "var(--success)" : "var(--error)",
+                fontSize: "14px",
+              }}
+            >
+              {feedback.msg}
+            </div>
+          )}
+
+          <button
+            className="btn-primary"
+            type="submit"
+            disabled={saving || !configPassword}
+            style={{ alignSelf: "flex-start", padding: "12px 32px" }}
+          >
+            {saving ? "Salvando..." : "Salvar configurações"}
+          </button>
+        </div>
       </form>
     </div>
   );

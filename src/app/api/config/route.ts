@@ -27,8 +27,31 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json();
-    console.log("[PUT /api/config] body received:", JSON.stringify(body));
+    const { configPassword, ...fields } = body;
 
+    // Prompt-only save — no password required
+    if (configPassword === undefined) {
+      let config = await prisma.agentConfig.findFirst();
+      if (config) {
+        config = await prisma.agentConfig.update({
+          where: { id: config.id },
+          data: { systemPrompt: fields.systemPrompt ?? config.systemPrompt },
+        });
+      } else {
+        config = await prisma.agentConfig.create({
+          data: { systemPrompt: fields.systemPrompt ?? "Você é um assistente prestativo e amigável." },
+        });
+      }
+      return NextResponse.json(config);
+    }
+
+    // Full save — requires config password
+    const expected = process.env.CONFIG_PASSWORD ?? process.env.ADMIN_PASSWORD;
+    if (!expected || configPassword !== expected) {
+      return NextResponse.json({ error: "Senha incorreta" }, { status: 403 });
+    }
+
+    console.log("[PUT /api/config] full save authorized");
     let config = await prisma.agentConfig.findFirst();
     console.log("[PUT /api/config] existing config id:", config?.id ?? "none");
 
@@ -36,41 +59,41 @@ export async function PUT(request: Request) {
       config = await prisma.agentConfig.update({
         where: { id: config.id },
         data: {
-          name: body.name,
-          systemPrompt: body.systemPrompt,
-          temperature: parseFloat(body.temperature),
-          maxTokens: parseInt(body.maxTokens),
-          historyLimit: parseInt(body.historyLimit),
-          enabled: Boolean(body.enabled),
-          allowedPhones: body.allowedPhones ?? "",
-          evolutionUrl: body.evolutionUrl ?? "",
-          evolutionApiKey: body.evolutionApiKey ?? "",
-          instanceId: body.instanceId ?? "",
-          aiProvider: body.aiProvider ?? "openai",
-          openaiApiKey: body.openaiApiKey ?? "",
-          openaiModel: body.openaiModel ?? "gpt-4.1-mini",
-          groqApiKey: body.groqApiKey ?? "",
-          groqModel: body.groqModel ?? "llama-3.3-70b-versatile",
+          name: fields.name,
+          systemPrompt: fields.systemPrompt,
+          temperature: parseFloat(fields.temperature),
+          maxTokens: parseInt(fields.maxTokens),
+          historyLimit: parseInt(fields.historyLimit),
+          enabled: Boolean(fields.enabled),
+          allowedPhones: fields.allowedPhones ?? "",
+          evolutionUrl: fields.evolutionUrl ?? "",
+          evolutionApiKey: fields.evolutionApiKey ?? "",
+          instanceId: fields.instanceId ?? "",
+          aiProvider: fields.aiProvider ?? "openai",
+          openaiApiKey: fields.openaiApiKey ?? "",
+          openaiModel: fields.openaiModel ?? "gpt-4.1-mini",
+          groqApiKey: fields.groqApiKey ?? "",
+          groqModel: fields.groqModel ?? "llama-3.3-70b-versatile",
         },
       });
     } else {
       config = await prisma.agentConfig.create({
         data: {
-          name: body.name ?? "Assistente IA",
-          systemPrompt: body.systemPrompt ?? "Você é um assistente prestativo e amigável.",
-          temperature: parseFloat(body.temperature) || 0.7,
-          maxTokens: parseInt(body.maxTokens) || 1024,
-          historyLimit: parseInt(body.historyLimit) || 10,
-          enabled: Boolean(body.enabled ?? true),
-          allowedPhones: body.allowedPhones ?? "",
-          evolutionUrl: body.evolutionUrl ?? "",
-          evolutionApiKey: body.evolutionApiKey ?? "",
-          instanceId: body.instanceId ?? "",
-          aiProvider: body.aiProvider ?? "openai",
-          openaiApiKey: body.openaiApiKey ?? "",
-          openaiModel: body.openaiModel ?? "gpt-4.1-mini",
-          groqApiKey: body.groqApiKey ?? "",
-          groqModel: body.groqModel ?? "llama-3.3-70b-versatile",
+          name: fields.name ?? "Assistente IA",
+          systemPrompt: fields.systemPrompt ?? "Você é um assistente prestativo e amigável.",
+          temperature: parseFloat(fields.temperature) || 0.7,
+          maxTokens: parseInt(fields.maxTokens) || 1024,
+          historyLimit: parseInt(fields.historyLimit) || 10,
+          enabled: Boolean(fields.enabled ?? true),
+          allowedPhones: fields.allowedPhones ?? "",
+          evolutionUrl: fields.evolutionUrl ?? "",
+          evolutionApiKey: fields.evolutionApiKey ?? "",
+          instanceId: fields.instanceId ?? "",
+          aiProvider: fields.aiProvider ?? "openai",
+          openaiApiKey: fields.openaiApiKey ?? "",
+          openaiModel: fields.openaiModel ?? "gpt-4.1-mini",
+          groqApiKey: fields.groqApiKey ?? "",
+          groqModel: fields.groqModel ?? "llama-3.3-70b-versatile",
         },
       });
     }
