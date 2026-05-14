@@ -161,7 +161,7 @@ export default function ItemsPage() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
             <div>
               <h1 style={{ fontFamily: "var(--font-display)", fontSize: "18px", fontWeight: 700, color: "var(--text-1)" }}>
-                Itens Registrados
+                Itens Registrados <span style={{ fontSize: "11px", color: "var(--accent)", fontWeight: 400, marginLeft: "6px" }}>v2</span>
               </h1>
               <p style={{ color: "var(--text-2)", fontSize: "13px", marginTop: "2px" }}>
                 {items.length} item{items.length !== 1 ? "s" : ""} no total
