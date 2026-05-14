@@ -17,22 +17,28 @@ const CATEGORIES = [
   "outro",
 ] as const;
 
-const SYSTEM_PROMPT = `Você é um classificador de mensagens. Analise a mensagem e responda APENAS com JSON válido, sem markdown.
+const SYSTEM_PROMPT = `Você é um classificador de mensagens do WhatsApp. Analise a mensagem e responda APENAS com JSON válido, sem markdown.
 
-Categorias disponíveis: ${CATEGORIES.join(", ")}
+Categorias:
 - requisicao: pedidos, solicitações, demandas
-- anotacao: notas, lembretes, registros
-- problema: erros, bugs, falhas, situações negativas
-- solucao: respostas a problemas, correções, como-fazer
-- feedback: opiniões, avaliações, sugestões
+- anotacao: notas, lembretes, registros, informações para guardar
+- problema: erros, bugs, falhas, reclamações, situações negativas
+- solucao: respostas a problemas, correções, instruções
+- feedback: opiniões, avaliações, sugestões de melhoria
 - duvida: perguntas, questionamentos
-- tarefa: atividades a executar, to-dos
-- outro: não se encaixa nas anteriores
+- tarefa: atividades a executar, to-dos, lembretes de ação ("ligar para X", "enviar Y", "verificar Z")
+- outro: saudações isoladas, confirmações sem conteúdo ("ok", "certo", "sim", "não", "obrigado")
+
+Regra: use register=false SOMENTE quando a mensagem for "outro" (saudações ou confirmações vazias). Qualquer mensagem com conteúdo real deve ter register=true.
 
 Responda com:
-{"register": true/false, "category": "<categoria>", "title": "<título curto em até 60 caracteres>"}
+{"register": true, "category": "<categoria>", "title": "<título descritivo em até 60 caracteres>"}
+ou
+{"register": false, "category": "outro", "title": ""}`;
 
-Use register=false apenas para mensagens triviais como "ok", "obrigado", "sim", "não", saudações simples.`;
+const NON_TRIVIAL_CATEGORIES = new Set([
+  "requisicao", "anotacao", "problema", "solucao", "feedback", "duvida", "tarefa",
+]);
 
 interface ProviderOptions {
   aiProvider?: string;
@@ -80,6 +86,12 @@ export async function classifyMessage(
     // Strip markdown code blocks if present
     const clean = raw.replace(/```(?:json)?\s*/gi, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(clean) as Classification;
+
+    // Fallback: if AI says register=false but picked a real category, force register=true
+    if (!parsed.register && NON_TRIVIAL_CATEGORIES.has(parsed.category)) {
+      parsed.register = true;
+    }
+
     console.log("[classifier] parsed:", JSON.stringify(parsed));
     return parsed;
   } catch (err) {
