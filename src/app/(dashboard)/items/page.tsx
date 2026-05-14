@@ -127,10 +127,26 @@ export default function ItemsPage() {
         body: JSON.stringify({ text: classifyText }),
       });
       const data = await res.json();
-      if (res.ok) {
-        setDiagMsg(`Classificação: ${JSON.stringify(data.classification)}`);
+      if (!res.ok) { setDiagMsg(`✗ Erro: ${data.error}`); setDiagLoading(false); return; }
+
+      const c = data.classification;
+      if (!c) { setDiagMsg("✗ Classificação retornou null (verifique a chave de API)"); setDiagLoading(false); return; }
+
+      if (c.register) {
+        const saveRes = await fetch("/api/items", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ category: c.category, title: c.title, content: classifyText, status: "aberto" }),
+        });
+        const saveData = await saveRes.json();
+        if (saveRes.ok) {
+          setDiagMsg(`✓ Classificado e salvo: [${c.category}] ${c.title}`);
+          await load();
+        } else {
+          setDiagMsg(`✓ Classificado mas erro ao salvar: ${saveData.error}`);
+        }
       } else {
-        setDiagMsg(`✗ Erro: ${data.error}`);
+        setDiagMsg(`— Não registrado (mensagem trivial): categoria "${c.category}"`);
       }
     } catch (e) {
       setDiagMsg(`✗ Erro: ${e instanceof Error ? e.message : String(e)}`);
@@ -225,7 +241,7 @@ export default function ItemsPage() {
                 disabled={diagLoading || !classifyText.trim()}
                 style={{ fontSize: "12px", padding: "6px 12px" }}
               >
-                Testar Classificador
+                Classificar e Salvar
               </button>
             </div>
             {diagMsg && (
