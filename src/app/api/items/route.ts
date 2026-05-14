@@ -23,3 +23,27 @@ export async function GET(request: Request) {
 
   return NextResponse.json(items);
 }
+
+export async function POST(request: Request) {
+  if (!(await isAuthenticated(request))) {
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const item = await prisma.item.create({
+      data: {
+        category: body.category ?? "outro",
+        title: body.title ?? "Item manual",
+        content: body.content ?? "",
+        status: body.status ?? "aberto",
+        phone: body.phone ?? null,
+      },
+    });
+    return NextResponse.json(item);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[items POST] error:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}

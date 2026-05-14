@@ -57,6 +57,9 @@ export default function ItemsPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [selected, setSelected] = useState<Item | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [diagMsg, setDiagMsg] = useState<string | null>(null);
+  const [diagLoading, setDiagLoading] = useState(false);
+  const [classifyText, setClassifyText] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -89,6 +92,50 @@ export default function ItemsPage() {
     await fetch(`/api/items/${id}`, { method: "DELETE" });
     setSelected(null);
     await load();
+  }
+
+  async function testCreateItem() {
+    setDiagLoading(true);
+    setDiagMsg(null);
+    try {
+      const res = await fetch("/api/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: "outro", title: "Item de teste", content: "Criado manualmente para diagnóstico" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDiagMsg(`✓ Item criado: id=${data.id}`);
+        await load();
+      } else {
+        setDiagMsg(`✗ Erro ao criar: ${data.error}`);
+      }
+    } catch (e) {
+      setDiagMsg(`✗ Erro: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    setDiagLoading(false);
+  }
+
+  async function testClassify() {
+    if (!classifyText.trim()) return;
+    setDiagLoading(true);
+    setDiagMsg(null);
+    try {
+      const res = await fetch("/api/items/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: classifyText }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDiagMsg(`Classificação: ${JSON.stringify(data.classification)}`);
+      } else {
+        setDiagMsg(`✗ Erro: ${data.error}`);
+      }
+    } catch (e) {
+      setDiagMsg(`✗ Erro: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    setDiagLoading(false);
   }
 
   const categories = [...new Set(items.map((i) => i.category))];
@@ -126,7 +173,7 @@ export default function ItemsPage() {
           </div>
 
           {/* Filters */}
-          <div style={{ display: "flex", gap: "10px" }}>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
             <select
               className="field-input"
               value={filterCategory}
@@ -149,6 +196,43 @@ export default function ItemsPage() {
                 <option key={s} value={s}>{STATUS_LABELS[s]}</option>
               ))}
             </select>
+          </div>
+
+          {/* Diagnóstico */}
+          <div style={{ marginTop: "12px", padding: "12px 14px", background: "var(--surface-2)", borderRadius: "10px", border: "1px solid var(--border)" }}>
+            <p style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>
+              Diagnóstico
+            </p>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", marginBottom: "8px" }}>
+              <button
+                className="btn-ghost"
+                onClick={testCreateItem}
+                disabled={diagLoading}
+                style={{ fontSize: "12px", padding: "6px 12px" }}
+              >
+                Testar Prisma (criar item)
+              </button>
+              <input
+                className="field-input"
+                value={classifyText}
+                onChange={(e) => setClassifyText(e.target.value)}
+                placeholder="Digite uma mensagem para classificar..."
+                style={{ fontSize: "12px", flex: 1, minWidth: "200px" }}
+              />
+              <button
+                className="btn-ghost"
+                onClick={testClassify}
+                disabled={diagLoading || !classifyText.trim()}
+                style={{ fontSize: "12px", padding: "6px 12px" }}
+              >
+                Testar Classificador
+              </button>
+            </div>
+            {diagMsg && (
+              <p style={{ fontSize: "12px", color: diagMsg.startsWith("✓") ? "var(--success)" : diagMsg.startsWith("✗") ? "var(--error)" : "var(--ai)", fontFamily: "var(--font-mono)" }}>
+                {diagMsg}
+              </p>
+            )}
           </div>
         </div>
 
