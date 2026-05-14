@@ -61,7 +61,12 @@ const incrementalNew = [
 ];
 
 for (const sql of incrementalNew) {
-  try { await db.execute(sql); } catch { /* já existe */ }
+  try {
+    await db.execute(sql);
+    console.log("[migrate] Item table OK");
+  } catch (e) {
+    console.log("[migrate] Item table already exists:", e.message);
+  }
 }
 
 const incremental = [
