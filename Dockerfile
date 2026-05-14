@@ -30,6 +30,7 @@ COPY --from=builder /app/node_modules/js-base64 ./node_modules/js-base64
 COPY --from=builder /app/node_modules/promise-limit ./node_modules/promise-limit
 COPY --from=builder /app/node_modules/@neon-rs ./node_modules/@neon-rs
 COPY --from=builder /app/node_modules/detect-libc ./node_modules/detect-libc
+COPY --from=builder /app/node_modules/@anthropic-ai ./node_modules/@anthropic-ai
 COPY --from=builder /app/migrate.mjs ./migrate.mjs
 COPY --from=builder /app/start.sh ./start.sh
 

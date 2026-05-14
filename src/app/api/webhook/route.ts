@@ -118,6 +118,8 @@ Quando o usuário perguntar sobre tarefas, problemas, requisições ou qualquer 
           openaiModel: config.openaiModel,
           groqApiKey: config.groqApiKey,
           groqModel: config.groqModel,
+          anthropicApiKey: config.anthropicApiKey,
+          anthropicModel: config.anthropicModel,
         }
       );
       aiContent = result.content;
@@ -146,6 +148,8 @@ Quando o usuário perguntar sobre tarefas, problemas, requisições ou qualquer 
         openaiModel: config.openaiModel,
         groqApiKey: config.groqApiKey,
         groqModel: config.groqModel,
+        anthropicApiKey: config.anthropicApiKey,
+        anthropicModel: config.anthropicModel,
       });
       console.log("[webhook] classification:", JSON.stringify(classification));
       if (classification?.register) {

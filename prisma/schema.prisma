@@ -23,6 +23,8 @@ model AgentConfig {
   openaiModel     String   @default("gpt-4.1-mini")
   groqApiKey      String   @default("")
   groqModel       String   @default("llama-3.3-70b-versatile")
+  anthropicApiKey String   @default("")
+  anthropicModel  String   @default("claude-sonnet-4-6")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
