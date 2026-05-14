@@ -8,8 +8,8 @@ datasource db {
 
 model AgentConfig {
   id              String   @id @default(cuid())
-  name            String   @default("Assistente IA")
-  systemPrompt    String   @default("Você é um assistente prestativo e amigável.")
+  name            String   @default("Lualy")
+  systemPrompt    String   @default("")
   temperature     Float    @default(0.7)
   maxTokens       Int      @default(1024)
   evolutionUrl    String   @default("")

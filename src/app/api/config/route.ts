@@ -79,8 +79,8 @@ export async function PUT(request: Request) {
     } else {
       config = await prisma.agentConfig.create({
         data: {
-          name: fields.name ?? "Assistente IA",
-          systemPrompt: fields.systemPrompt ?? "Você é um assistente prestativo e amigável.",
+          name: fields.name ?? "Lualy",
+          systemPrompt: fields.systemPrompt ?? "",
           temperature: parseFloat(fields.temperature) || 0.7,
           maxTokens: parseInt(fields.maxTokens) || 1024,
           historyLimit: parseInt(fields.historyLimit) || 10,

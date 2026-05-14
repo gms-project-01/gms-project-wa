@@ -23,8 +23,8 @@ interface Config {
 }
 
 const defaultConfig: Config = {
-  name: "Assistente IA",
-  systemPrompt: "Você é um assistente prestativo e amigável.",
+  name: "Lualy",
+  systemPrompt: "",
   temperature: 0.7,
   maxTokens: 1024,
   historyLimit: 10,

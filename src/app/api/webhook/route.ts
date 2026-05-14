@@ -187,14 +187,16 @@ export async function POST(request: Request) {
       classificationHint = "Responda de forma breve e natural. Não faça perguntas desnecessárias.";
     }
 
-    const systemPromptWithItems = `${config.systemPrompt}
-
----
+    const contextBlock = `---
 CONTEXTO INTERNO — não reproduza na resposta:
 ${itemsBlock}
 ---
 INSTRUÇÃO: ${classificationHint}
 REGRA: Nunca copie a lista acima na resposta. Use-a apenas para consultar informações internamente.`;
+
+    const systemPromptWithItems = config.systemPrompt.trim()
+      ? `${config.systemPrompt.trim()}\n\n${contextBlock}`
+      : contextBlock;
 
     // STEP 5: Generate AI response with full context
     let aiContent: string;
