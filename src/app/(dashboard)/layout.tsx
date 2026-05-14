@@ -45,7 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             border: "1px solid var(--accent-border)",
             borderRadius: "12px",
           }}>
-            <span style={{ fontSize: "20px" }}>🤖</span>
+            <span style={{ fontSize: "20px" }}>🌙</span>
             <span style={{
               fontFamily: "var(--font-sans)",
               fontWeight: 800,
@@ -53,7 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               color: "var(--accent-text)",
               letterSpacing: "0.01em",
             }}>
-              Bylua Project
+              Lualy Project
             </span>
           </div>
         </div>

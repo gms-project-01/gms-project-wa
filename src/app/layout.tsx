@@ -10,14 +10,14 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "GMS Project - WA",
+  title: "Lualy Project",
   description: "Dashboard do agente IA integrado ao WhatsApp",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
-      <body className={nunito.variable} style={{ background: "var(--bg)" }}>
+    <html lang="pt-BR" className={nunito.variable}>
+      <body style={{ background: "var(--bg)" }}>
         {children}
       </body>
     </html>
