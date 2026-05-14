@@ -73,12 +73,43 @@ export async function POST(request: Request) {
       content: m.content,
     }));
 
+    // Inject registered items as context so the AI can answer queries about them
+    const items = await prisma.item.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+
+    const STATUS_PT: Record<string, string> = {
+      aberto: "Aberto",
+      em_andamento: "Em andamento",
+      resolvido: "Resolvido",
+    };
+    const CATEGORY_PT: Record<string, string> = {
+      requisicao: "Requisição", anotacao: "Anotação", problema: "Problema",
+      solucao: "Solução", feedback: "Feedback", duvida: "Dúvida",
+      tarefa: "Tarefa", outro: "Outro",
+    };
+
+    const itemsBlock = items.length > 0
+      ? items.map((i) =>
+          `• [${CATEGORY_PT[i.category] ?? i.category}] ${i.title} — ${STATUS_PT[i.status] ?? i.status}${i.phone ? ` (${i.phone})` : ""}`
+        ).join("\n")
+      : "Nenhum item registrado ainda.";
+
+    const systemPromptWithItems = `${config.systemPrompt}
+
+---
+ITENS REGISTRADOS NO SISTEMA (banco de dados atualizado):
+${itemsBlock}
+---
+Quando o usuário perguntar sobre tarefas, problemas, requisições ou qualquer item registrado, use as informações acima para responder com precisão. Você pode filtrar por status (Aberto, Em andamento, Resolvido) ou categoria conforme a pergunta.`;
+
     let aiContent: string;
     let aiTokens: number;
     try {
       const result = await generateResponse(
         messages,
-        config.systemPrompt,
+        systemPromptWithItems,
         config.temperature,
         config.maxTokens,
         {
