@@ -51,8 +51,6 @@ export async function PUT(request: Request) {
           openaiModel: body.openaiModel ?? "gpt-4.1-mini",
           groqApiKey: body.groqApiKey ?? "",
           groqModel: body.groqModel ?? "llama-3.3-70b-versatile",
-          anthropicApiKey: body.anthropicApiKey ?? "",
-          anthropicModel: body.anthropicModel ?? "claude-sonnet-4-6",
         },
       });
     } else {
@@ -73,8 +71,6 @@ export async function PUT(request: Request) {
           openaiModel: body.openaiModel ?? "gpt-4.1-mini",
           groqApiKey: body.groqApiKey ?? "",
           groqModel: body.groqModel ?? "llama-3.3-70b-versatile",
-          anthropicApiKey: body.anthropicApiKey ?? "",
-          anthropicModel: body.anthropicModel ?? "claude-sonnet-4-6",
         },
       });
     }

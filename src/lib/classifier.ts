@@ -1,5 +1,4 @@
 import OpenAI from "openai";
-import Anthropic from "@anthropic-ai/sdk";
 
 export interface Classification {
   register: boolean;
@@ -47,8 +46,6 @@ interface ProviderOptions {
   openaiModel?: string;
   groqApiKey?: string;
   groqModel?: string;
-  anthropicApiKey?: string;
-  anthropicModel?: string;
 }
 
 export async function classifyMessage(
@@ -57,40 +54,33 @@ export async function classifyMessage(
 ): Promise<Classification | null> {
   try {
     const provider = providerOpts?.aiProvider ?? "openai";
-    let raw: string;
+    let client: OpenAI;
+    let model: string;
 
-    if (provider === "anthropic") {
-      const client = new Anthropic({
-        apiKey: providerOpts?.anthropicApiKey || process.env.ANTHROPIC_API_KEY,
+    if (provider === "groq") {
+      client = new OpenAI({
+        baseURL: "https://api.groq.com/openai/v1",
+        apiKey: providerOpts?.groqApiKey ?? "",
       });
-      const model = providerOpts?.anthropicModel ?? "claude-sonnet-4-6";
-      const response = await client.messages.create({
-        model,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: text }],
-        temperature: 0,
-        max_tokens: 120,
-      });
-      raw = response.content[0]?.type === "text" ? response.content[0].text : "";
+      model = providerOpts?.groqModel ?? "llama-3.3-70b-versatile";
     } else {
-      let client: OpenAI;
-      let model: string;
-      if (provider === "groq") {
-        client = new OpenAI({ baseURL: "https://api.groq.com/openai/v1", apiKey: providerOpts?.groqApiKey ?? "" });
-        model = providerOpts?.groqModel ?? "llama-3.3-70b-versatile";
-      } else {
-        client = new OpenAI({ apiKey: providerOpts?.openaiApiKey || process.env.OPENAI_API_KEY });
-        model = providerOpts?.openaiModel ?? "gpt-4.1-mini";
-      }
-      const response = await client.chat.completions.create({
-        model,
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: text }],
-        temperature: 0,
-        max_tokens: 120,
+      client = new OpenAI({
+        apiKey: providerOpts?.openaiApiKey || process.env.OPENAI_API_KEY,
       });
-      raw = response.choices[0]?.message?.content ?? "";
+      model = providerOpts?.openaiModel ?? "gpt-4.1-mini";
     }
 
+    const response = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: text },
+      ],
+      temperature: 0,
+      max_tokens: 120,
+    });
+
+    const raw = response.choices[0]?.message?.content ?? "";
     console.log("[classifier] raw response:", raw.slice(0, 200));
 
     // Strip markdown code blocks if present

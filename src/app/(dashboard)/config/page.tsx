@@ -20,8 +20,6 @@ interface Config {
   openaiModel: string;
   groqApiKey: string;
   groqModel: string;
-  anthropicApiKey: string;
-  anthropicModel: string;
 }
 
 const defaultConfig: Config = {
@@ -40,8 +38,6 @@ const defaultConfig: Config = {
   openaiModel: "gpt-4.1-mini",
   groqApiKey: "",
   groqModel: "llama-3.3-70b-versatile",
-  anthropicApiKey: "",
-  anthropicModel: "claude-sonnet-4-6",
 };
 
 export default function ConfigPage() {
@@ -246,35 +242,31 @@ export default function ConfigPage() {
             Provedor de IA
           </h2>
 
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            {[
-              { value: "openai", label: "OpenAI" },
-              { value: "groq", label: "Groq (grátis)" },
-              { value: "anthropic", label: "Claude (Anthropic)" },
-            ].map((p) => (
+          <div style={{ display: "flex", gap: "10px" }}>
+            {["openai", "groq"].map((p) => (
               <button
-                key={p.value}
+                key={p}
                 type="button"
-                onClick={() => set("aiProvider", p.value)}
+                onClick={() => set("aiProvider", p)}
                 style={{
                   padding: "8px 20px",
                   borderRadius: "10px",
-                  border: config.aiProvider === p.value ? "1px solid var(--accent-border)" : "1px solid var(--border-2)",
-                  background: config.aiProvider === p.value ? "var(--accent-dim)" : "transparent",
-                  color: config.aiProvider === p.value ? "var(--accent)" : "var(--text-2)",
-                  fontWeight: config.aiProvider === p.value ? 600 : 400,
+                  border: config.aiProvider === p ? "1px solid var(--accent-border)" : "1px solid var(--border-2)",
+                  background: config.aiProvider === p ? "var(--accent-dim)" : "transparent",
+                  color: config.aiProvider === p ? "var(--accent)" : "var(--text-2)",
+                  fontWeight: config.aiProvider === p ? 600 : 400,
                   fontSize: "14px",
                   cursor: "pointer",
                   transition: "all 0.15s",
                   fontFamily: "var(--font-body)",
                 }}
               >
-                {p.label}
+                {p === "openai" ? "OpenAI" : "Groq (grátis)"}
               </button>
             ))}
           </div>
 
-          {config.aiProvider === "openai" && (
+          {config.aiProvider === "openai" ? (
             <>
               <div>
                 <label style={labelStyle}>OpenAI API Key</label>
@@ -300,9 +292,7 @@ export default function ConfigPage() {
                 </select>
               </div>
             </>
-          )}
-
-          {config.aiProvider === "groq" && (
+          ) : (
             <>
               <div>
                 <label style={labelStyle}>Groq API Key</label>
@@ -325,33 +315,6 @@ export default function ConfigPage() {
                   <option value="llama-3.1-8b-instant">llama-3.1-8b-instant</option>
                   <option value="gemma2-9b-it">gemma2-9b-it</option>
                   <option value="mixtral-8x7b-32768">mixtral-8x7b-32768</option>
-                </select>
-              </div>
-            </>
-          )}
-
-          {config.aiProvider === "anthropic" && (
-            <>
-              <div>
-                <label style={labelStyle}>Anthropic API Key</label>
-                <input
-                  className="field-input"
-                  type="password"
-                  placeholder="sk-ant-..."
-                  value={config.anthropicApiKey}
-                  onChange={(e) => set("anthropicApiKey", e.target.value)}
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Modelo</label>
-                <select
-                  className="field-input"
-                  value={config.anthropicModel}
-                  onChange={(e) => set("anthropicModel", e.target.value)}
-                >
-                  <option value="claude-sonnet-4-6">claude-sonnet-4-6 (recomendado)</option>
-                  <option value="claude-opus-4-7">claude-opus-4-7 (mais capaz)</option>
-                  <option value="claude-haiku-4-5-20251001">claude-haiku-4-5-20251001 (mais rápido)</option>
                 </select>
               </div>
             </>

@@ -71,8 +71,6 @@ for (const sql of incrementalNew) {
 
 const incremental = [
   `ALTER TABLE "AgentConfig" ADD COLUMN "historyLimit" INTEGER NOT NULL DEFAULT 10`,
-  `ALTER TABLE "AgentConfig" ADD COLUMN "anthropicApiKey" TEXT NOT NULL DEFAULT ''`,
-  `ALTER TABLE "AgentConfig" ADD COLUMN "anthropicModel" TEXT NOT NULL DEFAULT 'claude-sonnet-4-6'`,
   `ALTER TABLE "AgentConfig" ADD COLUMN "enabled" INTEGER NOT NULL DEFAULT 1`,
   `ALTER TABLE "AgentConfig" ADD COLUMN "allowedPhones" TEXT NOT NULL DEFAULT ''`,
   `ALTER TABLE "AgentConfig" ADD COLUMN "aiProvider" TEXT NOT NULL DEFAULT 'openai'`,
