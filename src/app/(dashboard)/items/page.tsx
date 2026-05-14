@@ -25,14 +25,14 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  requisicao: "#F0A020",
-  anotacao: "#2DD4BF",
-  problema: "#F87171",
-  solucao: "#4ADE80",
-  feedback: "#A78BFA",
-  duvida: "#60A5FA",
-  tarefa: "#FB923C",
-  outro: "#7A7A9C",
+  requisicao: "#B07000",
+  anotacao: "#0F8A7E",
+  problema: "#C0392B",
+  solucao: "#1D8A50",
+  feedback: "#6D47B3",
+  duvida: "#1E66C4",
+  tarefa: "#B8590A",
+  outro: "#7A6858",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -42,9 +42,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  aberto: "#F87171",
-  em_andamento: "#F0A020",
-  resolvido: "#4ADE80",
+  aberto: "#C0392B",
+  em_andamento: "#B07000",
+  resolvido: "#1D8A50",
 };
 
 const ALL_STATUSES = ["aberto", "em_andamento", "resolvido"];

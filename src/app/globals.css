@@ -1,38 +1,38 @@
 @import "tailwindcss";
 
 :root {
-  /* Backgrounds — dark navy, muito mais legível que preto puro */
-  --bg: #0E1521;
-  --surface: #182030;
-  --surface-2: #1E2940;
-  --surface-3: #263350;
+  /* Backgrounds — warm off-white, paleta nude */
+  --bg: #F5F1EC;
+  --surface: #FFFFFF;
+  --surface-2: #FAF7F3;
+  --surface-3: #F2ECE4;
 
-  /* Borders — visíveis mas discretos */
-  --border: #2A3A54;
-  --border-2: #384E6E;
-  --border-3: #4A6488;
+  /* Borders */
+  --border: #E8DFD5;
+  --border-2: #D4C4B0;
+  --border-3: #BCA890;
 
-  /* Accent — âmbar mais limpo */
-  --accent: #F5A623;
-  --accent-dim: rgba(245, 166, 35, 0.13);
-  --accent-border: rgba(245, 166, 35, 0.32);
-  --accent-text: #FBBF24;
+  /* Accent — marrom nude/camel */
+  --accent: #8B6B4A;
+  --accent-dim: rgba(139, 107, 74, 0.10);
+  --accent-border: rgba(139, 107, 74, 0.28);
+  --accent-text: #6B4E32;
 
-  /* AI — verde-teal */
-  --ai: #2DD4BF;
-  --ai-dim: rgba(45, 212, 191, 0.1);
-  --ai-border: rgba(45, 212, 191, 0.25);
+  /* AI — teal ajustado para fundo claro */
+  --ai: #0D9488;
+  --ai-dim: rgba(13, 148, 136, 0.08);
+  --ai-border: rgba(13, 148, 136, 0.22);
 
-  /* Text — alto contraste */
-  --text-1: #EDF0FA;
-  --text-2: #8A96B8;
-  --text-3: #52607E;
+  /* Text */
+  --text-1: #1C1714;
+  --text-2: #6B5C4E;
+  --text-3: #A89080;
 
   /* Status */
-  --error: #F87171;
-  --error-dim: rgba(248, 113, 113, 0.12);
-  --success: #34D399;
-  --success-dim: rgba(52, 211, 153, 0.12);
+  --error: #C0392B;
+  --error-dim: rgba(192, 57, 43, 0.08);
+  --success: #16A34A;
+  --success-dim: rgba(22, 163, 74, 0.10);
 
   /* Font */
   --font-sans: var(--font-nunito), 'Nunito', sans-serif;
@@ -91,7 +91,7 @@ code, pre, .font-mono {
 
 .btn-primary {
   background: var(--accent);
-  color: #0E1521;
+  color: #FFFFFF;
   font-weight: 700;
   border-radius: 10px;
   border: none;
@@ -173,7 +173,7 @@ code, pre, .font-mono {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--ai);
+  background: var(--text-3);
   animation: dotPulse 1.4s ease-in-out infinite;
 }
 
