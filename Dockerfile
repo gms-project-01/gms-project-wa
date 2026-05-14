@@ -14,6 +14,7 @@ RUN npx prisma generate
 RUN npm run build
 
 FROM base AS runner
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 ENV NODE_ENV=production
 
