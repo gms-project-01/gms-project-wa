@@ -4,6 +4,29 @@ import { generateResponse } from "@/lib/openai";
 import { sendWhatsAppMessage } from "@/lib/evolution";
 import { classifyMessage, Classification } from "@/lib/classifier";
 
+function normalize(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9\s]/g, "");
+}
+
+function wordOverlapScore(a: string, b: string): number {
+  const wordsA = new Set(normalize(a).split(/\s+/).filter(w => w.length > 2));
+  const wordsB = new Set(normalize(b).split(/\s+/).filter(w => w.length > 2));
+  if (wordsA.size === 0 || wordsB.size === 0) return 0;
+  let overlap = 0;
+  for (const word of wordsA) {
+    if (wordsB.has(word)) overlap++;
+  }
+  return overlap / Math.max(wordsA.size, wordsB.size);
+}
+
+function findBestMatch(ref: string, titles: string[]): string | null {
+  const scored = titles
+    .map(title => ({ title, score: wordOverlapScore(ref, title) }))
+    .filter(x => x.score >= 0.5)
+    .sort((a, b) => b.score - a.score);
+  return scored[0]?.title ?? null;
+}
+
 const STATUS_PT: Record<string, string> = {
   aberto: "Aberto",
   em_andamento: "Em andamento",
@@ -107,19 +130,17 @@ export async function POST(request: Request) {
       console.log("[webhook] item saved:", classification.category, "-", classification.title);
 
     } else if (classification?.action === "update_status" && classification.itemRef) {
-      const ref = classification.itemRef.toLowerCase();
       const allItems = await prisma.item.findMany({ orderBy: { createdAt: "desc" } });
-      const match = allItems.find(
-        (i) => i.title.toLowerCase().includes(ref) || ref.includes(i.title.toLowerCase())
-      );
-      if (match) {
+      const match = findBestMatch(classification.itemRef, allItems.map(i => i.title));
+      const matchedItem = match !== null ? allItems.find(i => i.title === match) : null;
+      if (matchedItem) {
         const newStatus = classification.newStatus ?? "resolvido";
-        await prisma.item.update({ where: { id: match.id }, data: { status: newStatus } });
-        statusUpdateResult = { success: true, title: match.title, newStatus };
-        console.log("[webhook] item status updated:", match.title, "->", newStatus);
+        await prisma.item.update({ where: { id: matchedItem.id }, data: { status: newStatus } });
+        statusUpdateResult = { success: true, title: matchedItem.title, newStatus };
+        console.log("[webhook] item status updated:", matchedItem.title, "->", newStatus);
       } else {
         statusUpdateResult = { success: false, title: classification.itemRef };
-        console.log("[webhook] update_status: no matching item found for ref:", ref);
+        console.log("[webhook] update_status: no matching item found for ref:", classification.itemRef);
       }
     }
 
@@ -150,17 +171,17 @@ export async function POST(request: Request) {
     // STEP 4: Build classification-aware instruction so AI knows what happened and how to respond
     let classificationHint: string;
     if (classification?.action === "query") {
-      classificationHint = "O usuário está consultando informações. Responda DIRETAMENTE com base nos itens acima. Seja conciso e objetivo. NÃO faça perguntas de volta. NÃO peça confirmação.";
+      classificationHint = "O usuário está consultando. Responda em texto corrido, mencionando os itens relevantes de forma natural. NÃO faça perguntas de volta. NÃO copie a lista com bullets.";
     } else if (classification?.action === "register") {
       const title = classification.title ?? "item";
       const cat = CATEGORY_PT[classification.category ?? ""] ?? classification.category ?? "";
-      classificationHint = `O usuário registrou um novo item: "${title}"${cat ? ` (${cat})` : ""}. Confirme brevemente que foi anotado. Não faça perguntas desnecessárias.`;
+      classificationHint = `O item foi registrado com sucesso. Confirme em UMA frase curta, ex: "Anotado! ${title}${cat ? ` (${cat})` : ""} foi registrado." Não liste outros itens.`;
     } else if (classification?.action === "update_status") {
       if (statusUpdateResult.success) {
         const statusLabel = STATUS_PT[statusUpdateResult.newStatus ?? ""] ?? statusUpdateResult.newStatus;
-        classificationHint = `O status do item "${statusUpdateResult.title}" foi atualizado para "${statusLabel}" no sistema. Confirme esta atualização para o usuário de forma breve e direta.`;
+        classificationHint = `Status atualizado com sucesso. Confirme em UMA frase curta, ex: "Pronto! ${statusUpdateResult.title} marcado como ${statusLabel}." Não liste outros itens.`;
       } else {
-        classificationHint = `O usuário pediu para atualizar o status de "${statusUpdateResult.title}", mas este item não foi encontrado no sistema. Informe que não localizou o item e peça para confirmar o nome.`;
+        classificationHint = `O item "${statusUpdateResult.title}" não foi encontrado no sistema. Informe isso em uma frase curta e peça para confirmar o nome exato.`;
       }
     } else {
       classificationHint = "Responda de forma breve e natural. Não faça perguntas desnecessárias.";
@@ -169,10 +190,11 @@ export async function POST(request: Request) {
     const systemPromptWithItems = `${config.systemPrompt}
 
 ---
-ITENS REGISTRADOS NO SISTEMA:
+CONTEXTO INTERNO — não reproduza na resposta:
 ${itemsBlock}
 ---
-INSTRUÇÃO PARA ESTA MENSAGEM: ${classificationHint}`;
+INSTRUÇÃO: ${classificationHint}
+REGRA: Nunca copie a lista acima na resposta. Use-a apenas para consultar informações internamente.`;
 
     // STEP 5: Generate AI response with full context
     let aiContent: string;
