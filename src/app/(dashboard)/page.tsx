@@ -137,7 +137,7 @@ export default function ChatPage() {
               {msg.content}
             </div>
             {msg.role === "assistant" && msg.tokens && (
-              <span style={{ fontSize: "11px", color: "var(--text-3)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>
+              <span style={{ fontSize: "11px", color: "var(--text-3)", marginTop: "4px", fontFamily: "var(--font-sans)" }}>
                 {msg.tokens} tokens
               </span>
             )}

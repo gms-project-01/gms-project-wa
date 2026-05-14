@@ -144,7 +144,7 @@ export default function ConversationsPage() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontFamily: "var(--font-mono)",
+                  fontFamily: "var(--font-sans)",
                   fontSize: "12px",
                   fontWeight: 700,
                   color: "var(--text-2)",
@@ -158,7 +158,7 @@ export default function ConversationsPage() {
                   <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-1)" }}>
                     {conv.phone ?? "Desconhecido"}
                   </span>
-                  <span style={{ fontSize: "11px", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
+                  <span style={{ fontSize: "11px", color: "var(--text-3)", fontFamily: "var(--font-sans)" }}>
                     {formatTime(conv.updatedAt)}
                   </span>
                 </div>
@@ -215,7 +215,7 @@ export default function ConversationsPage() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontFamily: "var(--font-mono)",
+                  fontFamily: "var(--font-sans)",
                   fontSize: "11px",
                   fontWeight: 700,
                   color: "var(--text-2)",
@@ -263,7 +263,7 @@ export default function ConversationsPage() {
                       fontSize: "11px",
                       color: "var(--text-3)",
                       marginTop: "3px",
-                      fontFamily: "var(--font-mono)",
+                      fontFamily: "var(--font-sans)",
                     }}
                   >
                     {formatDate(msg.createdAt)}

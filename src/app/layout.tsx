@@ -1,31 +1,23 @@
 import type { Metadata } from "next";
-import { Nunito, JetBrains_Mono } from "next/font/google";
+import { Nunito } from "next/font/google";
 import "./globals.css";
 
 const nunito = Nunito({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-nunito",
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains",
-  display: "swap",
-});
-
 export const metadata: Metadata = {
-  title: "Agente IA WhatsApp",
+  title: "GMS Project - WA",
   description: "Dashboard do agente IA integrado ao WhatsApp",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body
-        className={`${nunito.variable} ${jetbrainsMono.variable}`}
-        style={{ background: "var(--bg)" }}
-      >
+      <body className={nunito.variable} style={{ background: "var(--bg)" }}>
         {children}
       </body>
     </html>

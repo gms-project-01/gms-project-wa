@@ -249,7 +249,7 @@ export default function ItemsPage() {
               </button>
             </div>
             {diagMsg && (
-              <p style={{ fontSize: "12px", color: diagMsg.startsWith("✓") ? "var(--success)" : diagMsg.startsWith("✗") ? "var(--error)" : "var(--ai)", fontFamily: "var(--font-mono)" }}>
+              <p style={{ fontSize: "12px", color: diagMsg.startsWith("✓") ? "var(--success)" : diagMsg.startsWith("✗") ? "var(--error)" : "var(--ai)", fontFamily: "var(--font-sans)" }}>
                 {diagMsg}
               </p>
             )}
@@ -329,7 +329,7 @@ export default function ItemsPage() {
                           {CATEGORY_LABELS[item.category] ?? item.category}
                         </span>
                         {item.phone && (
-                          <span style={{ fontSize: "10px", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
+                          <span style={{ fontSize: "10px", color: "var(--text-3)", fontFamily: "var(--font-sans)" }}>
                             {item.phone.slice(-8)}
                           </span>
                         )}
@@ -337,7 +337,7 @@ export default function ItemsPage() {
                       <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-1)", marginBottom: "4px", lineHeight: "1.4" }}>
                         {item.title}
                       </p>
-                      <p style={{ fontSize: "11px", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
+                      <p style={{ fontSize: "11px", color: "var(--text-3)", fontFamily: "var(--font-sans)" }}>
                         {formatDate(item.createdAt)}
                       </p>
                     </div>
