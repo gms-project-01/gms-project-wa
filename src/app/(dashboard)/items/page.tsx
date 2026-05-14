@@ -132,7 +132,7 @@ export default function ItemsPage() {
       const c = data.classification;
       if (!c) { setDiagMsg("✗ Classificação retornou null (verifique a chave de API)"); setDiagLoading(false); return; }
 
-      if (c.register) {
+      if (c.action === "register" && c.category) {
         const saveRes = await fetch("/api/items", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -140,13 +140,17 @@ export default function ItemsPage() {
         });
         const saveData = await saveRes.json();
         if (saveRes.ok) {
-          setDiagMsg(`✓ Classificado e salvo: [${c.category}] ${c.title}`);
+          setDiagMsg(`✓ Registrado: [${c.category}] ${c.title}`);
           await load();
         } else {
-          setDiagMsg(`✓ Classificado mas erro ao salvar: ${saveData.error}`);
+          setDiagMsg(`✗ Classificado mas erro ao salvar: ${saveData.error}`);
         }
+      } else if (c.action === "update_status") {
+        setDiagMsg(`↺ Atualização de status detectada: "${c.itemRef}" → ${c.newStatus} (só funciona via webhook)`);
+      } else if (c.action === "query") {
+        setDiagMsg(`🔍 Consulta detectada — não será registrada`);
       } else {
-        setDiagMsg(`— Não registrado (mensagem trivial): categoria "${c.category}"`);
+        setDiagMsg(`— Mensagem trivial (none) — não será registrada`);
       }
     } catch (e) {
       setDiagMsg(`✗ Erro: ${e instanceof Error ? e.message : String(e)}`);

@@ -138,7 +138,7 @@ Quando o usuário perguntar sobre tarefas, problemas, requisições ou qualquer 
       data: { updatedAt: new Date() },
     });
 
-    // Classify and save item (awaited so errors are visible in logs)
+    // Classify message and act accordingly
     try {
       const classification = await classifyMessage(text, {
         aiProvider: config.aiProvider,
@@ -148,19 +148,38 @@ Quando o usuário perguntar sobre tarefas, problemas, requisições ou qualquer 
         groqModel: config.groqModel,
       });
       console.log("[webhook] classification:", JSON.stringify(classification));
-      if (classification?.register) {
+
+      if (classification?.action === "register" && classification.category) {
         await prisma.item.create({
           data: {
             category: classification.category,
-            title: classification.title,
+            title: classification.title ?? text.slice(0, 60),
             content: text,
             status: "aberto",
             phone,
           },
         });
         console.log("[webhook] item saved:", classification.category, "-", classification.title);
+
+      } else if (classification?.action === "update_status" && classification.itemRef) {
+        const ref = classification.itemRef.toLowerCase();
+        const allItems = await prisma.item.findMany({ orderBy: { createdAt: "desc" } });
+        const match = allItems.find(
+          (i) => i.title.toLowerCase().includes(ref) || ref.includes(i.title.toLowerCase())
+        );
+        if (match) {
+          const newStatus = classification.newStatus ?? "resolvido";
+          await prisma.item.update({ where: { id: match.id }, data: { status: newStatus } });
+          console.log("[webhook] item status updated:", match.title, "->", newStatus);
+        } else {
+          console.log("[webhook] update_status: no matching item found for ref:", ref);
+        }
+
+      } else if (classification?.action === "query") {
+        console.log("[webhook] query detected, no item saved");
+
       } else {
-        console.log("[webhook] message not registered (register=false or null)");
+        console.log("[webhook] none/trivial, no item saved");
       }
     } catch (err) {
       console.error("[webhook] classifier/save error:", err instanceof Error ? err.message : String(err));
