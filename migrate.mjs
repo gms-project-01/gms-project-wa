@@ -9,7 +9,7 @@ const db = createClient({ url });
 await db.executeMultiple(`
   CREATE TABLE IF NOT EXISTS "AgentConfig" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "name" TEXT NOT NULL DEFAULT 'Olivia',
+    "name" TEXT NOT NULL DEFAULT 'Olie',
     "systemPrompt" TEXT NOT NULL DEFAULT '',
     "temperature" REAL NOT NULL DEFAULT 0.7,
     "maxTokens" INTEGER NOT NULL DEFAULT 1024,

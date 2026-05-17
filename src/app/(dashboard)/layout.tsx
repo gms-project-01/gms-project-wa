@@ -53,7 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               color: "var(--accent-text)",
               letterSpacing: "0.01em",
             }}>
-              Olivia Project
+              Olie Project
             </span>
           </div>
         </div>

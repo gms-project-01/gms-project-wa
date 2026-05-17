@@ -10,7 +10,7 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Olivia Project",
+  title: "Olie Project",
   description: "Dashboard do agente IA integrado ao WhatsApp",
 };
 
