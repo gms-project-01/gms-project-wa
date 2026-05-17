@@ -8,7 +8,7 @@ datasource db {
 
 model AgentConfig {
   id              String   @id @default(cuid())
-  name            String   @default("Lualy")
+  name            String   @default("Olivia")
   systemPrompt    String   @default("")
   temperature     Float    @default(0.7)
   maxTokens       Int      @default(1024)

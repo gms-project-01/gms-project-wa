@@ -79,7 +79,7 @@ export async function PUT(request: Request) {
     } else {
       config = await prisma.agentConfig.create({
         data: {
-          name: fields.name ?? "Lualy",
+          name: fields.name ?? "Olivia",
           systemPrompt: fields.systemPrompt ?? "",
           temperature: parseFloat(fields.temperature) || 0.7,
           maxTokens: parseInt(fields.maxTokens) || 1024,

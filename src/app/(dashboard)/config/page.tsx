@@ -23,7 +23,7 @@ interface Config {
 }
 
 const defaultConfig: Config = {
-  name: "Lualy",
+  name: "Olivia",
   systemPrompt: "",
   temperature: 0.7,
   maxTokens: 1024,
