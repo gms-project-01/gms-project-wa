@@ -12,12 +12,23 @@ export async function GET(request: Request) {
   const category = searchParams.get("category") ?? undefined;
   const status = searchParams.get("status") ?? undefined;
   const phone = searchParams.get("phone") ?? undefined;
+  const dateFrom = searchParams.get("dateFrom") ?? undefined;
+  const dateTo = searchParams.get("dateTo") ?? undefined;
+
+  const dateFilter = dateFrom || dateTo ? {
+    createdAt: {
+      ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+      // add 1 day to dateTo so the full day is included
+      ...(dateTo ? { lte: new Date(new Date(dateTo).getTime() + 86_400_000) } : {}),
+    },
+  } : {};
 
   const items = await prisma.item.findMany({
     where: {
       ...(category ? { category } : {}),
       ...(status ? { status } : {}),
       ...(phone ? { phone: { contains: phone } } : {}),
+      ...dateFilter,
     },
     orderBy: { createdAt: "desc" },
   });

@@ -49,12 +49,18 @@ const STATUS_COLORS: Record<string, string> = {
 
 const ALL_STATUSES = ["aberto", "em_andamento", "resolvido"];
 
+function toDateStr(d: Date): string {
+  return d.toISOString().split("T")[0];
+}
+
 export default function ItemsPage() {
   const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [dateFrom, setDateFrom] = useState(() => toDateStr(new Date(Date.now() - 3 * 86_400_000)));
+  const [dateTo, setDateTo] = useState(() => toDateStr(new Date()));
   const [selected, setSelected] = useState<Item | null>(null);
   const [updating, setUpdating] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -65,12 +71,14 @@ export default function ItemsPage() {
     const params = new URLSearchParams();
     if (filterCategory) params.set("category", filterCategory);
     if (filterStatus) params.set("status", filterStatus);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
     const res = await fetch(`/api/items?${params}`);
     if (res.status === 401) { router.push("/login"); return; }
     const data = await res.json();
     setItems(data);
     setLoading(false);
-  }, [filterCategory, filterStatus, router]);
+  }, [filterCategory, filterStatus, dateFrom, dateTo, router]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -127,12 +135,12 @@ export default function ItemsPage() {
           </div>
 
           {/* Filters */}
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
             <select
               className="field-input"
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              style={{ fontSize: "13px", maxWidth: "180px" }}
+              style={{ fontSize: "13px", maxWidth: "170px" }}
             >
               <option value="">Todas as categorias</option>
               {Object.entries(CATEGORY_LABELS).map(([val, label]) => (
@@ -143,13 +151,39 @@ export default function ItemsPage() {
               className="field-input"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              style={{ fontSize: "13px", maxWidth: "180px" }}
+              style={{ fontSize: "13px", maxWidth: "160px" }}
             >
               <option value="">Todos os status</option>
               {ALL_STATUSES.map((s) => (
                 <option key={s} value={s}>{STATUS_LABELS[s]}</option>
               ))}
             </select>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontSize: "12px", color: "var(--text-3)", whiteSpace: "nowrap" }}>De</span>
+              <input
+                className="field-input"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                style={{ fontSize: "13px", maxWidth: "150px" }}
+              />
+              <span style={{ fontSize: "12px", color: "var(--text-3)", whiteSpace: "nowrap" }}>até</span>
+              <input
+                className="field-input"
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                style={{ fontSize: "13px", maxWidth: "150px" }}
+              />
+              <button
+                className="btn-ghost"
+                onClick={() => { setDateFrom(toDateStr(new Date(Date.now() - 3 * 86_400_000))); setDateTo(toDateStr(new Date())); }}
+                style={{ fontSize: "12px", padding: "6px 10px", whiteSpace: "nowrap" }}
+              >
+                Últimos 3 dias
+              </button>
+            </div>
           </div>
 
         </div>
