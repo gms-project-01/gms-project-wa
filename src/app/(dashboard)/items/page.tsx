@@ -59,9 +59,6 @@ export default function ItemsPage() {
   const [updating, setUpdating] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
-  const [diagMsg, setDiagMsg] = useState<string | null>(null);
-  const [diagLoading, setDiagLoading] = useState(false);
-  const [classifyText, setClassifyText] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -96,72 +93,6 @@ export default function ItemsPage() {
     setSelected(null);
     await load();
   }
-
-  async function testCreateItem() {
-    setDiagLoading(true);
-    setDiagMsg(null);
-    try {
-      const res = await fetch("/api/items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category: "outro", title: "Item de teste", content: "Criado manualmente para diagnóstico" }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setDiagMsg(`✓ Item criado: id=${data.id}`);
-        await load();
-      } else {
-        setDiagMsg(`✗ Erro ao criar: ${data.error}`);
-      }
-    } catch (e) {
-      setDiagMsg(`✗ Erro: ${e instanceof Error ? e.message : String(e)}`);
-    }
-    setDiagLoading(false);
-  }
-
-  async function testClassify() {
-    if (!classifyText.trim()) return;
-    setDiagLoading(true);
-    setDiagMsg(null);
-    try {
-      const res = await fetch("/api/items/classify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: classifyText }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setDiagMsg(`✗ Erro: ${data.error}`); setDiagLoading(false); return; }
-
-      const c = data.classification;
-      if (!c) { setDiagMsg("✗ Classificação retornou null (verifique a chave de API)"); setDiagLoading(false); return; }
-
-      if (c.action === "register" && c.category) {
-        const saveRes = await fetch("/api/items", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ category: c.category, title: c.title, content: classifyText, status: "aberto" }),
-        });
-        const saveData = await saveRes.json();
-        if (saveRes.ok) {
-          setDiagMsg(`✓ Registrado: [${c.category}] ${c.title}`);
-          await load();
-        } else {
-          setDiagMsg(`✗ Classificado mas erro ao salvar: ${saveData.error}`);
-        }
-      } else if (c.action === "update_status") {
-        setDiagMsg(`↺ Atualização de status detectada: "${c.itemRef}" → ${c.newStatus} (só funciona via webhook)`);
-      } else if (c.action === "query") {
-        setDiagMsg(`🔍 Consulta detectada — não será registrada`);
-      } else {
-        setDiagMsg(`— Mensagem trivial (none) — não será registrada`);
-      }
-    } catch (e) {
-      setDiagMsg(`✗ Erro: ${e instanceof Error ? e.message : String(e)}`);
-    }
-    setDiagLoading(false);
-  }
-
-  const categories = [...new Set(items.map((i) => i.category))];
 
   const grouped = ALL_STATUSES.reduce<Record<string, Item[]>>((acc, s) => {
     acc[s] = items.filter((i) => i.status === s);
@@ -221,42 +152,6 @@ export default function ItemsPage() {
             </select>
           </div>
 
-          {/* Diagnóstico */}
-          <div style={{ marginTop: "12px", padding: "12px 14px", background: "var(--surface-2)", borderRadius: "10px", border: "1px solid var(--border)" }}>
-            <p style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "10px" }}>
-              Diagnóstico
-            </p>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", marginBottom: "8px" }}>
-              <button
-                className="btn-ghost"
-                onClick={testCreateItem}
-                disabled={diagLoading}
-                style={{ fontSize: "12px", padding: "6px 12px" }}
-              >
-                Testar Prisma (criar item)
-              </button>
-              <input
-                className="field-input"
-                value={classifyText}
-                onChange={(e) => setClassifyText(e.target.value)}
-                placeholder="Digite uma mensagem para classificar..."
-                style={{ fontSize: "12px", flex: 1, minWidth: "200px" }}
-              />
-              <button
-                className="btn-ghost"
-                onClick={testClassify}
-                disabled={diagLoading || !classifyText.trim()}
-                style={{ fontSize: "12px", padding: "6px 12px" }}
-              >
-                Classificar e Salvar
-              </button>
-            </div>
-            {diagMsg && (
-              <p style={{ fontSize: "12px", color: diagMsg.startsWith("✓") ? "var(--success)" : diagMsg.startsWith("✗") ? "var(--error)" : "var(--ai)", fontFamily: "var(--font-sans)" }}>
-                {diagMsg}
-              </p>
-            )}
-          </div>
         </div>
 
         {/* Kanban-style columns */}
