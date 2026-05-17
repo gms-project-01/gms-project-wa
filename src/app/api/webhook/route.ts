@@ -130,6 +130,22 @@ export async function POST(request: Request) {
       });
       console.log("[webhook] item saved:", classification.category, "-", classification.title);
 
+    } else if (classification?.action === "register_multiple" && classification.items?.length) {
+      await Promise.all(
+        classification.items.map((item) =>
+          prisma.item.create({
+            data: {
+              category: item.category ?? "outro",
+              title: toInitCap(item.title),
+              content: text,
+              status: "aberto",
+              phone,
+            },
+          })
+        )
+      );
+      console.log("[webhook] multiple items saved:", classification.items.length);
+
     } else if (classification?.action === "update_status" && classification.itemRef) {
       const allItems = await prisma.item.findMany({ orderBy: { createdAt: "desc" } });
       const match = findBestMatch(classification.itemRef, allItems.map(i => i.title));
@@ -177,6 +193,9 @@ export async function POST(request: Request) {
       const title = classification.title ?? "item";
       const cat = CATEGORY_PT[classification.category ?? ""] ?? classification.category ?? "";
       classificationHint = `O item foi registrado com sucesso. Confirme em UMA frase curta, ex: "Anotado! ${title}${cat ? ` (${cat})` : ""} foi registrado." Não liste outros itens.`;
+    } else if (classification?.action === "register_multiple") {
+      const count = classification.items?.length ?? 0;
+      classificationHint = `${count} itens foram registrados individualmente no sistema. Confirme em UMA frase curta, ex: "${count} tarefas registradas com sucesso!" Não liste os itens.`;
     } else if (classification?.action === "update_status") {
       if (statusUpdateResult.success) {
         const statusLabel = STATUS_PT[statusUpdateResult.newStatus ?? ""] ?? statusUpdateResult.newStatus;
