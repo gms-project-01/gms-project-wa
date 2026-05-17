@@ -135,49 +135,52 @@ export default function ItemsPage() {
           </div>
 
           {/* Filters */}
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
-            <select
-              className="field-input"
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              style={{ fontSize: "13px", maxWidth: "170px" }}
-            >
-              <option value="">Todas as categorias</option>
-              {Object.entries(CATEGORY_LABELS).map(([val, label]) => (
-                <option key={val} value={val}>{label}</option>
-              ))}
-            </select>
-            <select
-              className="field-input"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              style={{ fontSize: "13px", maxWidth: "160px" }}
-            >
-              <option value="">Todos os status</option>
-              {ALL_STATUSES.map((s) => (
-                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-              ))}
-            </select>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-              <span style={{ fontSize: "12px", color: "var(--text-3)", whiteSpace: "nowrap" }}>De</span>
-              <input
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {/* Row 1: selects + date range */}
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+              <select
                 className="field-input"
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                style={{ fontSize: "13px", maxWidth: "150px" }}
-              />
-              <span style={{ fontSize: "12px", color: "var(--text-3)", whiteSpace: "nowrap" }}>até</span>
-              <input
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                style={{ fontSize: "13px", width: "160px" }}
+              >
+                <option value="">Todas as categorias</option>
+                {Object.entries(CATEGORY_LABELS).map(([val, label]) => (
+                  <option key={val} value={val}>{label}</option>
+                ))}
+              </select>
+              <select
                 className="field-input"
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                style={{ fontSize: "13px", maxWidth: "150px" }}
-              />
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                style={{ fontSize: "13px", width: "148px" }}
+              >
+                <option value="">Todos os status</option>
+                {ALL_STATUSES.map((s) => (
+                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                ))}
+              </select>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ fontSize: "12px", color: "var(--text-3)" }}>De</span>
+                <input
+                  className="field-input"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  style={{ fontSize: "13px", width: "148px" }}
+                />
+                <span style={{ fontSize: "12px", color: "var(--text-3)" }}>até</span>
+                <input
+                  className="field-input"
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  style={{ fontSize: "13px", width: "148px" }}
+                />
+              </div>
             </div>
-            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+            {/* Row 2: quick range buttons */}
+            <div style={{ display: "flex", gap: "6px" }}>
               {[3, 7, 10, 14, 30].map((days) => {
                 const from = toDateStr(new Date(Date.now() - days * 86_400_000));
                 const to = toDateStr(new Date());
@@ -188,7 +191,7 @@ export default function ItemsPage() {
                     onClick={() => { setDateFrom(from); setDateTo(to); }}
                     style={{
                       fontSize: "12px",
-                      padding: "5px 10px",
+                      padding: "5px 12px",
                       borderRadius: "8px",
                       border: `1px solid ${active ? "var(--accent-border)" : "var(--border-2)"}`,
                       background: active ? "var(--accent-dim)" : "transparent",
@@ -197,7 +200,6 @@ export default function ItemsPage() {
                       cursor: "pointer",
                       fontFamily: "var(--font-sans)",
                       transition: "all 0.15s",
-                      whiteSpace: "nowrap",
                     }}
                   >
                     {days}d
