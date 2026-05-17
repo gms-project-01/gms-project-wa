@@ -159,7 +159,7 @@ export default function ItemsPage() {
               ))}
             </select>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
               <span style={{ fontSize: "12px", color: "var(--text-3)", whiteSpace: "nowrap" }}>De</span>
               <input
                 className="field-input"
@@ -176,13 +176,34 @@ export default function ItemsPage() {
                 onChange={(e) => setDateTo(e.target.value)}
                 style={{ fontSize: "13px", maxWidth: "150px" }}
               />
-              <button
-                className="btn-ghost"
-                onClick={() => { setDateFrom(toDateStr(new Date(Date.now() - 3 * 86_400_000))); setDateTo(toDateStr(new Date())); }}
-                style={{ fontSize: "12px", padding: "6px 10px", whiteSpace: "nowrap" }}
-              >
-                Últimos 3 dias
-              </button>
+            </div>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              {[3, 7, 10, 14, 30].map((days) => {
+                const from = toDateStr(new Date(Date.now() - days * 86_400_000));
+                const to = toDateStr(new Date());
+                const active = dateFrom === from && dateTo === to;
+                return (
+                  <button
+                    key={days}
+                    onClick={() => { setDateFrom(from); setDateTo(to); }}
+                    style={{
+                      fontSize: "12px",
+                      padding: "5px 10px",
+                      borderRadius: "8px",
+                      border: `1px solid ${active ? "var(--accent-border)" : "var(--border-2)"}`,
+                      background: active ? "var(--accent-dim)" : "transparent",
+                      color: active ? "var(--accent-text)" : "var(--text-2)",
+                      fontWeight: active ? 700 : 400,
+                      cursor: "pointer",
+                      fontFamily: "var(--font-sans)",
+                      transition: "all 0.15s",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {days}d
+                  </button>
+                );
+              })}
             </div>
           </div>
 
