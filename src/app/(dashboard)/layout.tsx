@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 const navLinks = [
   { href: "/",              label: "Chat de Teste",    icon: "💬" },
-  { href: "/items",         label: "Itens Registrados", icon: "📋" },
+  { href: "/items",         label: "Tasks",              icon: "📋" },
   { href: "/conversations", label: "Conversas WA",     icon: "📱" },
   { href: "/config",        label: "Configurações",    icon: "⚙️" },
 ];
