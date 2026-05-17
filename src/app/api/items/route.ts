@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { toInitCap } from "@/lib/utils";
 
 export async function GET(request: Request) {
   if (!(await isAuthenticated(request))) {
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
     const item = await prisma.item.create({
       data: {
         category: body.category ?? "outro",
-        title: body.title ?? "Item manual",
+        title: toInitCap(body.title ?? "Item manual"),
         content: body.content ?? "",
         status: body.status ?? "aberto",
         phone: body.phone ?? null,

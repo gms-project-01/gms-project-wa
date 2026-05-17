@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { generateResponse } from "@/lib/openai";
 import { sendWhatsAppMessage } from "@/lib/evolution";
 import { classifyMessage, Classification } from "@/lib/classifier";
+import { toInitCap } from "@/lib/utils";
 
 function normalize(s: string): string {
   return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9\s]/g, "");
@@ -121,7 +122,7 @@ export async function POST(request: Request) {
       await prisma.item.create({
         data: {
           category: classification.category,
-          title: classification.title ?? text.slice(0, 60),
+          title: toInitCap(classification.title ?? text.slice(0, 60)),
           content: text,
           status: "aberto",
           phone,
