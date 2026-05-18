@@ -5,51 +5,68 @@ config();
 
 const db = createClient({ url: process.env.DATABASE_URL ?? "file:/app/data/prod.db" });
 
+function toMs(value) {
+  if (value == null) return NaN;
+  // Prisma may store as integer (unix ms) or ISO string
+  if (typeof value === "number") return value;
+  const n = Number(value);
+  if (!isNaN(n) && String(value) === String(n)) return n; // numeric string
+  return new Date(String(value)).getTime();
+}
+
 async function checkReminders() {
-  const now = new Date().toISOString();
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000;
 
-  // Mark overdue items (past scheduledAt) as sent without sending a message
-  await db.execute({
-    sql: `UPDATE "Item" SET reminderSent = 1
-          WHERE reminderSent = 0 AND scheduledAt IS NOT NULL AND scheduledAt < ?`,
-    args: [now],
-  });
-
-  // Items in the 15-min window that haven't expired yet
+  // Fetch all pending items with scheduledAt
   const result = await db.execute({
     sql: `SELECT i.id, i.title, i.phone, i.scheduledAt,
                  a.evolutionUrl, a.evolutionApiKey, a.instanceId
           FROM "Item" i, "AgentConfig" a
-          WHERE i.reminderSent = 0
-            AND i.scheduledAt IS NOT NULL
-            AND datetime(i.scheduledAt, '-15 minutes') <= ?
-            AND i.scheduledAt > ?
-          LIMIT 20`,
-    args: [now, now],
+          WHERE i.reminderSent = 0 AND i.scheduledAt IS NOT NULL
+          LIMIT 50`,
+    args: [],
   });
 
   for (const row of result.rows) {
+    const scheduledMs = toMs(row.scheduledAt);
+
+    if (isNaN(scheduledMs)) {
+      // Bad data — discard silently
+      await db.execute({ sql: `UPDATE "Item" SET reminderSent = 1 WHERE id = ?`, args: [row.id] });
+      continue;
+    }
+
+    // Past the scheduled time — discard without sending
+    if (scheduledMs < now) {
+      await db.execute({ sql: `UPDATE "Item" SET reminderSent = 1 WHERE id = ?`, args: [row.id] });
+      console.log("[cron] overdue, discarded:", row.title);
+      continue;
+    }
+
+    // Not yet in the 15-min window — skip for now
+    if (scheduledMs - now > windowMs) continue;
+
+    // In window and not expired — send reminder
     const evolutionUrl = String(row.evolutionUrl ?? "");
     const evolutionApiKey = String(row.evolutionApiKey ?? "");
     const instanceId = String(row.instanceId ?? "");
     const phone = String(row.phone ?? "");
     const title = String(row.title ?? "");
 
-    // Always mark sent to avoid infinite loop even if config is missing
+    // Mark sent first to avoid double-send on retry
     await db.execute({ sql: `UPDATE "Item" SET reminderSent = 1 WHERE id = ?`, args: [row.id] });
 
     if (!evolutionUrl || !instanceId || !phone) {
-      console.log("[cron] skipping reminder (missing config/phone):", row.id);
+      console.log("[cron] skipping (missing config/phone):", row.id);
       continue;
     }
 
-    const scheduledLabel = row.scheduledAt
-      ? new Date(String(row.scheduledAt)).toLocaleString("pt-BR", {
-          timeZone: "America/Sao_Paulo",
-          hour: "2-digit", minute: "2-digit",
-          day: "2-digit", month: "2-digit",
-        })
-      : "";
+    const scheduledLabel = new Date(scheduledMs).toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit", minute: "2-digit",
+      day: "2-digit", month: "2-digit",
+    });
 
     const message = `⏰ *Lembrete:* ${title}\n🕐 Agendado para ${scheduledLabel}`;
 
@@ -60,7 +77,7 @@ async function checkReminders() {
         body: JSON.stringify({ number: phone, text: message }),
       });
       if (!res.ok) {
-        console.error("[cron] Evolution API error:", res.status, await res.text());
+        console.error("[cron] Evolution error:", res.status, await res.text());
       } else {
         console.log("[cron] reminder sent:", title, "->", phone);
       }
