@@ -25,9 +25,10 @@ Classifique a mensagem em uma das 6 ações:
    Resposta: {"action":"register","category":"<cat>","title":"<até 60 chars>"}
 
 2. "register_multiple" — LISTA com múltiplos itens para salvar como tarefas separadas
-   Use quando a mensagem contém vários itens separados por >, -, *, números ou quebras de linha.
-   Exemplos: lista de tarefas do dia, bullet points, itens numerados
-   Cada item deve virar uma tarefa individual.
+   Use quando a mensagem contém vários itens separados por |, >, -, *, números, quebras de linha ou padrão repetitivo.
+   Exemplos: lista de tarefas, bullet points, "projeto | subtarefa" repetido, itens numerados, atividades do dia
+   Se a mensagem tem 3 ou mais linhas/itens distintos → sempre "register_multiple".
+   Cada item deve virar uma tarefa individual com título conciso (até 60 chars).
    Resposta: {"action":"register_multiple","items":[{"category":"<cat>","title":"<título>"},{"category":"<cat>","title":"<título>"},...]}
 
 3. "update_status" — atualização de status de item existente
@@ -50,7 +51,8 @@ Classifique a mensagem em uma das 6 ações:
    Resposta: {"action":"none"}
 
 REGRAS:
-- Se a mensagem tem MÚLTIPLOS itens em lista → sempre "register_multiple", nunca "register"
+- Se a mensagem tem MÚLTIPLOS itens em lista (incluindo separador |) → sempre "register_multiple", nunca "register"
+- Mensagem com 3 ou mais itens/linhas distintos → sempre "register_multiple"
 - Qualquer mensagem que pergunta sobre tarefas/itens/status → sempre "query"
 - Pedido de lembrete com horário → sempre "reminder"
 
