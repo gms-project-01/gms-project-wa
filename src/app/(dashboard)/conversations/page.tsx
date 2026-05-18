@@ -24,6 +24,7 @@ export default function ConversationsPage() {
   const [selected, setSelected] = useState<Conversation | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadConversations();
@@ -41,6 +42,15 @@ export default function ConversationsPage() {
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
+    loadConversations(search.trim() || undefined);
+  }
+
+  async function deleteConversation(id: string) {
+    if (!confirm("Apagar esta conversa? O histórico será perdido e o bot começará do zero com este número.")) return;
+    setDeleting(true);
+    await fetch(`/api/conversations?id=${id}`, { method: "DELETE" });
+    setSelected(null);
+    setDeleting(false);
     loadConversations(search.trim() || undefined);
   }
 
@@ -223,7 +233,7 @@ export default function ConversationsPage() {
               >
                 {getInitials(selected.phone)}
               </div>
-              <div>
+              <div style={{ flex: 1 }}>
                 <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-1)" }}>
                   {selected.phone ?? "Desconhecido"}
                 </p>
@@ -231,6 +241,14 @@ export default function ConversationsPage() {
                   {selected.messages.length} mensagens
                 </p>
               </div>
+              <button
+                onClick={() => deleteConversation(selected.id)}
+                disabled={deleting}
+                className="btn-ghost"
+                style={{ fontSize: "12px", padding: "6px 12px", color: "var(--error)", borderColor: "var(--error)", opacity: deleting ? 0.5 : 1 }}
+              >
+                🗑 Apagar conversa
+              </button>
             </div>
 
             <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: "14px" }}>
