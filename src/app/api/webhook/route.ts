@@ -165,16 +165,17 @@ export async function POST(request: Request) {
 
     } else if (classification?.action === "reminder" && classification.scheduledAt) {
       const scheduledAt = new Date(classification.scheduledAt + "-03:00");
-      const reminderAt = new Date(scheduledAt.getTime() - 15 * 60 * 1000);
-      await prisma.reminder.create({
+      await prisma.item.create({
         data: {
+          category: "tarefa",
           title: toInitCap(classification.title ?? text.slice(0, 60)),
+          content: text,
+          status: "aberto",
           phone,
           scheduledAt,
-          reminderAt,
         },
       });
-      console.log("[webhook] reminder saved:", classification.title, "at", scheduledAt.toISOString());
+      console.log("[webhook] reminder item saved:", classification.title, "at", scheduledAt.toISOString());
     }
 
     // STEP 3: Fetch history and items AFTER DB updates (AI sees fresh data)

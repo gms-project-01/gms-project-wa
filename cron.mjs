@@ -7,11 +7,16 @@ const db = createClient({ url: process.env.DATABASE_URL ?? "file:/app/data/prod.
 
 async function checkReminders() {
   const now = new Date().toISOString();
+
+  // Items with scheduledAt where 15-min-before window has arrived
   const result = await db.execute({
-    sql: `SELECT r.id, r.title, r.phone, r.scheduledAt,
+    sql: `SELECT i.id, i.title, i.phone, i.scheduledAt,
                  a.evolutionUrl, a.evolutionApiKey, a.instanceId
-          FROM "Reminder" r, "AgentConfig" a
-          WHERE r.sent = 0 AND r.reminderAt <= ? LIMIT 20`,
+          FROM "Item" i, "AgentConfig" a
+          WHERE i.reminderSent = 0
+            AND i.scheduledAt IS NOT NULL
+            AND datetime(i.scheduledAt, '-15 minutes') <= ?
+          LIMIT 20`,
     args: [now],
   });
 
@@ -22,13 +27,24 @@ async function checkReminders() {
     const phone = String(row.phone ?? "");
     const title = String(row.title ?? "");
 
-    if (!evolutionUrl || !instanceId) {
-      console.log("[cron] skipping reminder, Evolution not configured:", row.id);
-      await db.execute({ sql: `UPDATE "Reminder" SET sent = 1 WHERE id = ?`, args: [row.id] });
+    // Always mark sent to avoid infinite loop even if config is missing
+    await db.execute({ sql: `UPDATE "Item" SET reminderSent = 1 WHERE id = ?`, args: [row.id] });
+
+    if (!evolutionUrl || !instanceId || !phone) {
+      console.log("[cron] skipping reminder (missing config/phone):", row.id);
       continue;
     }
 
-    const message = `⏰ *Lembrete:* ${title}`;
+    const scheduledLabel = row.scheduledAt
+      ? new Date(String(row.scheduledAt)).toLocaleString("pt-BR", {
+          timeZone: "America/Sao_Paulo",
+          hour: "2-digit", minute: "2-digit",
+          day: "2-digit", month: "2-digit",
+        })
+      : "";
+
+    const message = `⏰ *Lembrete:* ${title}\n🕐 Agendado para ${scheduledLabel}`;
+
     try {
       const res = await fetch(`${evolutionUrl}/message/sendText/${instanceId}`, {
         method: "POST",
@@ -43,8 +59,6 @@ async function checkReminders() {
     } catch (err) {
       console.error("[cron] fetch error:", err instanceof Error ? err.message : String(err));
     }
-
-    await db.execute({ sql: `UPDATE "Reminder" SET sent = 1 WHERE id = ?`, args: [row.id] });
   }
 }
 

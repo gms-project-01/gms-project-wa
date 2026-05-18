@@ -79,6 +79,8 @@ for (const sql of incrementalNew) {
 }
 
 const incremental = [
+  `ALTER TABLE "Item" ADD COLUMN "scheduledAt" DATETIME`,
+  `ALTER TABLE "Item" ADD COLUMN "reminderSent" INTEGER NOT NULL DEFAULT 0`,
   `ALTER TABLE "AgentConfig" ADD COLUMN "historyLimit" INTEGER NOT NULL DEFAULT 10`,
   `ALTER TABLE "AgentConfig" ADD COLUMN "enabled" INTEGER NOT NULL DEFAULT 1`,
   `ALTER TABLE "AgentConfig" ADD COLUMN "allowedPhones" TEXT NOT NULL DEFAULT ''`,

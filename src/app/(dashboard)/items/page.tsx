@@ -10,6 +10,8 @@ interface Item {
   content: string;
   status: string;
   phone: string | null;
+  scheduledAt: string | null;
+  reminderSent: boolean;
   createdAt: string;
 }
 
@@ -110,6 +112,14 @@ export default function ItemsPage() {
   function formatDate(iso: string) {
     return new Date(iso).toLocaleString("pt-BR", {
       day: "2-digit", month: "2-digit", year: "2-digit",
+      hour: "2-digit", minute: "2-digit",
+    });
+  }
+
+  function formatScheduled(iso: string) {
+    return new Date(iso).toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      day: "2-digit", month: "2-digit",
       hour: "2-digit", minute: "2-digit",
     });
   }
@@ -315,6 +325,17 @@ export default function ItemsPage() {
                       <p style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-1)", marginBottom: "4px", lineHeight: "1.4" }}>
                         {item.title}
                       </p>
+                      {item.scheduledAt && (
+                        <div style={{
+                          display: "inline-flex", alignItems: "center", gap: "4px",
+                          fontSize: "11px", fontWeight: 600,
+                          padding: "2px 7px", borderRadius: "6px", marginBottom: "4px",
+                          background: item.reminderSent ? "var(--success-dim)" : "rgba(240,160,32,0.12)",
+                          color: item.reminderSent ? "var(--success)" : "#B07000",
+                        }}>
+                          {item.reminderSent ? "✓" : "⏰"} {formatScheduled(item.scheduledAt)}
+                        </div>
+                      )}
                       <p style={{ fontSize: "11px", color: "var(--text-3)", fontFamily: "var(--font-sans)" }}>
                         {formatDate(item.createdAt)}
                       </p>
@@ -387,6 +408,26 @@ export default function ItemsPage() {
             }}>
               {selected.content}
             </div>
+
+            {/* Scheduled reminder */}
+            {selected.scheduledAt && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: "8px",
+                padding: "10px 14px", borderRadius: "10px", marginBottom: "16px",
+                background: selected.reminderSent ? "var(--success-dim)" : "rgba(240,160,32,0.10)",
+                border: `1px solid ${selected.reminderSent ? "rgba(74,222,128,0.3)" : "rgba(240,160,32,0.25)"}`,
+              }}>
+                <span style={{ fontSize: "16px" }}>{selected.reminderSent ? "✅" : "⏰"}</span>
+                <div>
+                  <div style={{ fontSize: "12px", fontWeight: 700, color: selected.reminderSent ? "var(--success)" : "#B07000" }}>
+                    {selected.reminderSent ? "Lembrete enviado" : "Lembrete agendado"}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "var(--text-2)", marginTop: "1px" }}>
+                    {formatScheduled(selected.scheduledAt)} · aviso 15min antes
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Meta */}
             <div style={{ fontSize: "12px", color: "var(--text-3)", marginBottom: "20px", display: "flex", flexDirection: "column", gap: "4px" }}>
