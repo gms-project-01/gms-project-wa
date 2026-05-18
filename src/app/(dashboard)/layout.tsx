@@ -46,15 +46,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             borderRadius: "12px",
           }}>
             <span style={{ fontSize: "20px" }}>🌙</span>
-            <span style={{
-              fontFamily: "var(--font-sans)",
-              fontWeight: 800,
-              fontSize: "14px",
-              color: "var(--accent-text)",
-              letterSpacing: "0.01em",
-            }}>
-              Olie Project
-            </span>
+            <div>
+              <div style={{
+                fontFamily: "var(--font-sans)",
+                fontWeight: 800,
+                fontSize: "14px",
+                color: "var(--accent-text)",
+                letterSpacing: "0.01em",
+              }}>
+                Olie Project
+              </div>
+              <div style={{ fontSize: "10px", color: "var(--text-3)", marginTop: "1px" }}>v1.1 · lembretes</div>
+            </div>
           </div>
         </div>
 
