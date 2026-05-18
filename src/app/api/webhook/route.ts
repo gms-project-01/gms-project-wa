@@ -107,9 +107,12 @@ export async function POST(request: Request) {
     };
 
     // STEP 1: Classify message BEFORE generating AI response
+    const nowBrasilia = new Date().toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" })
+      .replace(" ", "T").slice(0, 16);
+
     let classification: Classification | null = null;
     try {
-      classification = await classifyMessage(text, providerOpts);
+      classification = await classifyMessage(text, providerOpts, nowBrasilia);
       console.log("[webhook] classification:", JSON.stringify(classification));
     } catch (err) {
       console.error("[webhook] classifier error:", err instanceof Error ? err.message : String(err));
@@ -159,6 +162,19 @@ export async function POST(request: Request) {
         statusUpdateResult = { success: false, title: classification.itemRef };
         console.log("[webhook] update_status: no matching item found for ref:", classification.itemRef);
       }
+
+    } else if (classification?.action === "reminder" && classification.scheduledAt) {
+      const scheduledAt = new Date(classification.scheduledAt + "-03:00");
+      const reminderAt = new Date(scheduledAt.getTime() - 15 * 60 * 1000);
+      await prisma.reminder.create({
+        data: {
+          title: toInitCap(classification.title ?? text.slice(0, 60)),
+          phone,
+          scheduledAt,
+          reminderAt,
+        },
+      });
+      console.log("[webhook] reminder saved:", classification.title, "at", scheduledAt.toISOString());
     }
 
     // STEP 3: Fetch history and items AFTER DB updates (AI sees fresh data)
@@ -203,6 +219,11 @@ export async function POST(request: Request) {
       } else {
         classificationHint = `O item "${statusUpdateResult.title}" não foi encontrado no sistema. Informe isso em uma frase curta e peça para confirmar o nome exato.`;
       }
+    } else if (classification?.action === "reminder") {
+      const scheduledLabel = classification.scheduledAt
+        ? new Date(classification.scheduledAt + "-03:00").toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })
+        : "";
+      classificationHint = `Lembrete salvo com sucesso. Confirme em UMA frase curta, ex: "Lembrete agendado! Vou te avisar sobre '${classification.title ?? ""}' às ${scheduledLabel}." Não liste outros itens.`;
     } else {
       classificationHint = "Responda de forma breve e natural. Não faça perguntas desnecessárias.";
     }

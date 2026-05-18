@@ -31,6 +31,7 @@ COPY --from=builder /app/node_modules/promise-limit ./node_modules/promise-limit
 COPY --from=builder /app/node_modules/@neon-rs ./node_modules/@neon-rs
 COPY --from=builder /app/node_modules/detect-libc ./node_modules/detect-libc
 COPY --from=builder /app/migrate.mjs ./migrate.mjs
+COPY --from=builder /app/cron.mjs ./cron.mjs
 COPY --from=builder /app/start.sh ./start.sh
 
 RUN mkdir -p /app/data

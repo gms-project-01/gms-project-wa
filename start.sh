@@ -8,5 +8,7 @@ echo "[start] Checking data dir..."
 ls -la /app/data/ 2>/dev/null || echo "[start] /app/data is empty or missing"
 echo "[start] Running migration..."
 node /app/migrate.mjs
-echo "[start] Migration OK, starting server..."
+echo "[start] Migration OK, starting reminder daemon..."
+node /app/cron.mjs &
+echo "[start] Starting server..."
 node server.js

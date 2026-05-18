@@ -58,14 +58,23 @@ const incrementalNew = [
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`,
+  `CREATE TABLE IF NOT EXISTS "Reminder" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
+    "scheduledAt" DATETIME NOT NULL,
+    "reminderAt" DATETIME NOT NULL,
+    "sent" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`,
 ];
 
 for (const sql of incrementalNew) {
   try {
     await db.execute(sql);
-    console.log("[migrate] Item table OK");
+    console.log("[migrate] table OK:", sql.match(/"(\w+)"/)?.[1]);
   } catch (e) {
-    console.log("[migrate] Item table already exists:", e.message);
+    console.log("[migrate] table already exists:", e.message);
   }
 }
 

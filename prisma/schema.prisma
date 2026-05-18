@@ -46,6 +46,16 @@ model Message {
   createdAt      DateTime     @default(now())
 }
 
+model Reminder {
+  id          String   @id @default(cuid())
+  title       String
+  phone       String
+  scheduledAt DateTime
+  reminderAt  DateTime
+  sent        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
 model Item {
   id        String   @id @default(cuid())
   category  String
