@@ -8,7 +8,14 @@ const db = createClient({ url: process.env.DATABASE_URL ?? "file:/app/data/prod.
 async function checkReminders() {
   const now = new Date().toISOString();
 
-  // Items with scheduledAt where 15-min-before window has arrived
+  // Mark overdue items (past scheduledAt) as sent without sending a message
+  await db.execute({
+    sql: `UPDATE "Item" SET reminderSent = 1
+          WHERE reminderSent = 0 AND scheduledAt IS NOT NULL AND scheduledAt < ?`,
+    args: [now],
+  });
+
+  // Items in the 15-min window that haven't expired yet
   const result = await db.execute({
     sql: `SELECT i.id, i.title, i.phone, i.scheduledAt,
                  a.evolutionUrl, a.evolutionApiKey, a.instanceId
@@ -16,8 +23,9 @@ async function checkReminders() {
           WHERE i.reminderSent = 0
             AND i.scheduledAt IS NOT NULL
             AND datetime(i.scheduledAt, '-15 minutes') <= ?
+            AND i.scheduledAt > ?
           LIMIT 20`,
-    args: [now],
+    args: [now, now],
   });
 
   for (const row of result.rows) {
