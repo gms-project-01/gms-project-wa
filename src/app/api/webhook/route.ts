@@ -150,8 +150,11 @@ export async function POST(request: Request) {
       console.log("[webhook] multiple items saved:", classification.items.length);
 
     } else if (classification?.action === "update_status" && classification.itemRef) {
-      const allItems = await prisma.item.findMany({ orderBy: { createdAt: "desc" } });
-      const match = findBestMatch(classification.itemRef, allItems.map(i => i.title));
+      const allItems = await prisma.item.findMany({ orderBy: { createdAt: "asc" } });
+      // Support numeric references: "marque 1", "item 2", etc.
+      const numericRef = classification.itemRef.match(/^(\d+)$/)?.[1];
+      const matchedByNumber = numericRef ? allItems[parseInt(numericRef) - 1] ?? null : null;
+      const match = matchedByNumber ? matchedByNumber.title : findBestMatch(classification.itemRef, allItems.map(i => i.title));
       const matchedItem = match !== null ? allItems.find(i => i.title === match) : null;
       if (matchedItem) {
         const newStatus = classification.newStatus ?? "resolvido";
@@ -216,9 +219,9 @@ export async function POST(request: Request) {
     } else if (classification?.action === "update_status") {
       if (statusUpdateResult.success) {
         const statusLabel = STATUS_PT[statusUpdateResult.newStatus ?? ""] ?? statusUpdateResult.newStatus;
-        classificationHint = `Status atualizado com sucesso. Confirme em UMA frase curta, ex: "Pronto! ${statusUpdateResult.title} marcado como ${statusLabel}." Não liste outros itens.`;
+        classificationHint = `Status atualizado. Responda SOMENTE: "Pronto! ${statusUpdateResult.title} marcado como ${statusLabel}." — nada mais. PROIBIDO listar tarefas pendentes, outras atividades ou qualquer outro conteúdo.`;
       } else {
-        classificationHint = `O item "${statusUpdateResult.title}" não foi encontrado no sistema. Informe isso em uma frase curta e peça para confirmar o nome exato.`;
+        classificationHint = `Item não encontrado. Responda SOMENTE: "Não encontrei '${statusUpdateResult.title}'. Pode confirmar o nome exato?" — nada mais.`;
       }
     } else if (classification?.action === "reminder") {
       const scheduledLabel = classification.scheduledAt

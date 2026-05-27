@@ -38,8 +38,9 @@ Classifique a mensagem em uma das 6 ações:
    Resposta: {"action":"register_multiple","items":[{"category":"<cat>","title":"<título>"},{"category":"<cat>","title":"<título>"},...]}
 
 3. "update_status" — atualização de status de item existente
-   Exemplos: "a tarefa de ligar para Luana foi concluída", "marquei o bug do login como resolvido", "finalizei a reunião", "concluí a tarefa X"
-   Resposta: {"action":"update_status","itemRef":"<título/referência do item>","newStatus":"<aberto|em_andamento|resolvido>"}
+   Exemplos: "a tarefa de ligar para Luana foi concluída", "marquei o bug do login como resolvido", "finalizei a reunião", "concluí a tarefa X", "marque 1 como concluído", "item 3 resolvido"
+   Se o usuário referenciar por número ("marque 1", "item 2"), coloque apenas o número em itemRef.
+   Resposta: {"action":"update_status","itemRef":"<título ou número do item>","newStatus":"<aberto|em_andamento|resolvido>"}
 
 4. "reminder" — pedido de lembrete em horário específico
    Exemplos: "me lembre de ligar às 09:00", "me avise sobre a reunião amanhã às 14:30", "lembrete pra hoje às 18h sobre o relatório"
