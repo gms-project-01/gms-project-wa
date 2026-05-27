@@ -50,6 +50,8 @@ export default function ConfigPage() {
   const [webhookUrl, setWebhookUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const [configPassword, setConfigPassword] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ connected: boolean; state?: string; error?: string } | null>(null);
 
   useEffect(() => {
     setWebhookUrl(window.location.origin + "/api/webhook");
@@ -101,6 +103,23 @@ export default function ConfigPage() {
 
   function set<K extends keyof Config>(key: K, value: Config[K]) {
     setConfig((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function testEvolution() {
+    setTesting(true);
+    setTestResult(null);
+    const res = await fetch("/api/evolution-test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        evolutionUrl: config.evolutionUrl,
+        evolutionApiKey: config.evolutionApiKey,
+        instanceId: config.instanceId,
+      }),
+    });
+    const data = await res.json();
+    setTestResult(data);
+    setTesting(false);
   }
 
   async function copyWebhook() {
@@ -391,6 +410,29 @@ export default function ConfigPage() {
               value={config.instanceId}
               onChange={(e) => set("instanceId", e.target.value)}
             />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={testEvolution}
+              disabled={testing || !config.evolutionUrl || !config.instanceId}
+              style={{ fontSize: "13px", padding: "8px 16px" }}
+            >
+              {testing ? "Testando..." : "Testar conexão"}
+            </button>
+            {testResult && (
+              <span style={{
+                fontSize: "13px",
+                fontWeight: 600,
+                color: testResult.connected ? "var(--success)" : "var(--error)",
+              }}>
+                {testResult.connected
+                  ? `✅ Conectado (${testResult.state})`
+                  : `❌ ${testResult.error ?? `Desconectado: ${testResult.state ?? "erro"}`}`}
+              </span>
+            )}
           </div>
         </div>
 
