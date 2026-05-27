@@ -25,10 +25,16 @@ Classifique a mensagem em uma das 6 ações:
    Resposta: {"action":"register","category":"<cat>","title":"<até 60 chars>"}
 
 2. "register_multiple" — LISTA com múltiplos itens para salvar como tarefas separadas
-   Use quando a mensagem contém vários itens separados por |, >, -, *, números, quebras de linha ou padrão repetitivo.
-   Exemplos: lista de tarefas, bullet points, "projeto | subtarefa" repetido, itens numerados, atividades do dia
-   Se a mensagem tem 3 ou mais linhas/itens distintos → sempre "register_multiple".
+   Use quando:
+   - A mensagem contém vários itens separados por |, >, -, *, números, quebras de linha ou padrão repetitivo
+   - O usuário diz "registre", "salve", "anote", "adicione" seguido de uma lista
+   - A mensagem tem 3 ou mais linhas/itens distintos
+   Exemplos:
+   - "Registre estas tarefas\nTarefa A\nTarefa B\nTarefa C"
+   - "Salve:\n- item 1\n- item 2\n- item 3"
+   - lista de tarefas separadas por | ou newline
    Cada item deve virar uma tarefa individual com título conciso (até 60 chars).
+   IGNORE a primeira linha se for apenas uma instrução ("Registre estas tarefas", "Salve isso", etc.).
    Resposta: {"action":"register_multiple","items":[{"category":"<cat>","title":"<título>"},{"category":"<cat>","title":"<título>"},...]}
 
 3. "update_status" — atualização de status de item existente
@@ -50,11 +56,13 @@ Classifique a mensagem em uma das 6 ações:
    Exemplos: "ok", "obrigado", "certo", "sim", "não", "oi", "olá", "tudo bem?", "até mais"
    Resposta: {"action":"none"}
 
-REGRAS:
-- Se a mensagem tem MÚLTIPLOS itens em lista (incluindo separador |) → sempre "register_multiple", nunca "register"
-- Mensagem com 3 ou mais itens/linhas distintos → sempre "register_multiple"
-- Qualquer mensagem que pergunta sobre tarefas/itens/status → sempre "query"
+REGRAS (em ordem de prioridade):
 - Pedido de lembrete com horário → sempre "reminder"
+- Mensagem com 3 ou mais itens/linhas distintos → sempre "register_multiple", mesmo que comece com instrução
+- Lista com separador |, -, *, > ou números → sempre "register_multiple"
+- Comando "registre/salve/anote" + lista → sempre "register_multiple"
+- Qualquer mensagem que pergunta sobre tarefas/itens/status → sempre "query"
+- Mensagem trivial sem conteúdo → "none"
 
 Categorias válidas: requisicao, anotacao, problema, solucao, feedback, duvida, tarefa, outro
 Status válidos para update_status: aberto, em_andamento, resolvido`;}
